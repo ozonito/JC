@@ -285,6 +285,17 @@
             margin-top: 10px;
         }
 
+        .reset-button {
+            background-color: var(--warning);
+            margin-top: 10px;
+            font-size: 0.9em;
+            padding: 8px;
+        }
+
+        .reset-button:hover {
+            background-color: #dc7a0b;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -335,6 +346,7 @@
             </div>
             
             <button onclick="startQuiz()" id="startButton" disabled>🚀 Comenzar Quiz</button>
+            <button class="reset-button" onclick="resetAllData()">🔄 Reiniciar historial de preguntas</button>
         </div>
         
         <!-- Sección del quiz -->
@@ -419,20 +431,218 @@
             endTime: null
         };
 
-        // Sistema de tracking de ocurrencias
-        let questionOccurrences = {};
+        // Sistema avanzado de tracking con historial de sesiones
+        const TRACKING_VERSION = '2.0'; // Versión del sistema de tracking
+        let advancedTracking = {
+            version: TRACKING_VERSION,
+            occurrences: {},           // Contador total de veces mostrada cada pregunta
+            sessionHistory: [],        // Historial de las últimas sesiones
+            lastShown: {},            // Última vez que se mostró cada pregunta (timestamp)
+            cooldownPeriod: 3,        // Número de sesiones antes de poder repetir
+            maxSessionHistory: 10     // Máximo de sesiones a recordar
+        };
 
-        // Cargar ocurrencias del localStorage
-        function loadOccurrences() {
-            const saved = localStorage.getItem('questionOccurrences');
+        // Cargar datos avanzados del localStorage
+        function loadAdvancedTracking() {
+            const saved = localStorage.getItem('advancedQuestionTracking');
             if (saved) {
-                questionOccurrences = JSON.parse(saved);
+                try {
+                    const parsed = JSON.parse(saved);
+                    // Verificar versión y migrar si es necesario
+                    if (parsed.version === TRACKING_VERSION) {
+                        advancedTracking = parsed;
+                    } else {
+                        // Migrar datos antiguos si existen
+                        migrateOldData();
+                    }
+                } catch (e) {
+                    console.error('Error loading tracking data:', e);
+                    initializeTracking();
+                }
+            } else {
+                initializeTracking();
             }
         }
 
-        // Guardar ocurrencias en localStorage
-        function saveOccurrences() {
-            localStorage.setItem('questionOccurrences', JSON.stringify(questionOccurrences));
+        // Inicializar sistema de tracking
+        function initializeTracking() {
+            questionsDB.forEach(q => {
+                advancedTracking.occurrences[q.id] = 0;
+                advancedTracking.lastShown[q.id] = 0;
+            });
+        }
+
+        // Migrar datos antiguos
+        function migrateOldData() {
+            const oldOccurrences = localStorage.getItem('questionOccurrences');
+            if (oldOccurrences) {
+                try {
+                    const parsed = JSON.parse(oldOccurrences);
+                    advancedTracking.occurrences = parsed;
+                    questionsDB.forEach(q => {
+                        if (!advancedTracking.occurrences[q.id]) {
+                            advancedTracking.occurrences[q.id] = 0;
+                        }
+                        advancedTracking.lastShown[q.id] = 0;
+                    });
+                } catch (e) {
+                    initializeTracking();
+                }
+            } else {
+                initializeTracking();
+            }
+        }
+
+        // Guardar datos avanzados en localStorage
+        function saveAdvancedTracking() {
+            localStorage.setItem('advancedQuestionTracking', JSON.stringify(advancedTracking));
+        }
+
+        // Algoritmo mejorado de selección aleatoria
+        function selectRandomQuestionsAdvanced(num, category) {
+            let availableQuestions = questionsDB;
+            
+            if (category !== 'TODO') {
+                availableQuestions = questionsDB.filter(q => q.category === category);
+            }
+
+            // Crear un pool de preguntas elegibles
+            const currentSession = new Date().getTime();
+            const recentlyShownIds = getRecentlyShownQuestions();
+            
+            // Separar preguntas en categorías
+            const neverShown = [];
+            const eligibleForRepeat = [];
+            const recentlyShown = [];
+            
+            availableQuestions.forEach(q => {
+                if (advancedTracking.occurrences[q.id] === 0) {
+                    // Nunca mostradas - máxima prioridad
+                    neverShown.push(q);
+                } else if (recentlyShownIds.includes(q.id)) {
+                    // Mostradas recientemente - menor prioridad
+                    recentlyShown.push(q);
+                } else {
+                    // Elegibles para repetir
+                    eligibleForRepeat.push(q);
+                }
+            });
+
+            // Construir pool final con prioridades
+            let finalPool = [];
+            
+            // 1. Primero las nunca mostradas
+            finalPool = finalPool.concat(neverShown);
+            
+            // 2. Luego las elegibles, ordenadas por menor frecuencia
+            eligibleForRepeat.sort((a, b) => {
+                const scoreA = calculateQuestionScore(a.id);
+                const scoreB = calculateQuestionScore(b.id);
+                return scoreB - scoreA; // Mayor score = mayor prioridad
+            });
+            finalPool = finalPool.concat(eligibleForRepeat);
+            
+            // 3. Solo si es absolutamente necesario, incluir las recientes
+            if (finalPool.length < num) {
+                recentlyShown.sort((a, b) => {
+                    const scoreA = calculateQuestionScore(a.id);
+                    const scoreB = calculateQuestionScore(b.id);
+                    return scoreB - scoreA;
+                });
+                finalPool = finalPool.concat(recentlyShown);
+            }
+
+            // Aplicar aleatorización Fisher-Yates con sesgo hacia las primeras
+            const selected = [];
+            const poolSize = Math.min(finalPool.length, num * 2); // Limitar el pool para mejor distribución
+            const workingPool = finalPool.slice(0, poolSize);
+            
+            // Aleatorizar el working pool
+            for (let i = workingPool.length - 1; i > 0; i--) {
+                // Sesgo hacia elementos anteriores (mayor prioridad)
+                const maxIndex = Math.min(i + 1, Math.floor(i * 1.5));
+                const j = Math.floor(Math.random() * maxIndex);
+                [workingPool[i], workingPool[j]] = [workingPool[j], workingPool[i]];
+            }
+            
+            // Seleccionar las preguntas finales
+            for (let i = 0; i < Math.min(num, workingPool.length); i++) {
+                selected.push(workingPool[i]);
+            }
+
+            // Registrar esta sesión
+            const sessionQuestions = selected.map(q => q.id);
+            registerNewSession(sessionQuestions);
+
+            return selected;
+        }
+
+        // Calcular score de prioridad para una pregunta
+        function calculateQuestionScore(questionId) {
+            const occurrences = advancedTracking.occurrences[questionId] || 0;
+            const lastShown = advancedTracking.lastShown[questionId] || 0;
+            const currentTime = new Date().getTime();
+            const timeSinceLastShown = currentTime - lastShown;
+            
+            // Factor de ocurrencias (menos veces mostrado = mayor score)
+            const occurrenceScore = 1 / (occurrences + 1);
+            
+            // Factor de tiempo (más tiempo sin mostrar = mayor score)
+            const timeScore = timeSinceLastShown / (1000 * 60 * 60 * 24); // Días desde última vez
+            
+            // Score combinado
+            return occurrenceScore * 100 + timeScore;
+        }
+
+        // Obtener preguntas mostradas recientemente
+        function getRecentlyShownQuestions() {
+            const recentQuestions = new Set();
+            const sessionsToCheck = Math.min(advancedTracking.cooldownPeriod, advancedTracking.sessionHistory.length);
+            
+            for (let i = 0; i < sessionsToCheck; i++) {
+                const session = advancedTracking.sessionHistory[i];
+                if (session && session.questions) {
+                    session.questions.forEach(qId => recentQuestions.add(qId));
+                }
+            }
+            
+            return Array.from(recentQuestions);
+        }
+
+        // Registrar nueva sesión
+        function registerNewSession(questionIds) {
+            const session = {
+                timestamp: new Date().getTime(),
+                questions: questionIds,
+                date: new Date().toISOString()
+            };
+            
+            // Agregar al principio del historial
+            advancedTracking.sessionHistory.unshift(session);
+            
+            // Limitar el tamaño del historial
+            if (advancedTracking.sessionHistory.length > advancedTracking.maxSessionHistory) {
+                advancedTracking.sessionHistory = advancedTracking.sessionHistory.slice(0, advancedTracking.maxSessionHistory);
+            }
+            
+            saveAdvancedTracking();
+        }
+
+        // Función para reiniciar todos los datos
+        function resetAllData() {
+            if (confirm('¿Estás seguro de que quieres reiniciar todo el historial de preguntas? Esta acción no se puede deshacer.')) {
+                advancedTracking = {
+                    version: TRACKING_VERSION,
+                    occurrences: {},
+                    sessionHistory: [],
+                    lastShown: {},
+                    cooldownPeriod: 3,
+                    maxSessionHistory: 10
+                };
+                initializeTracking();
+                saveAdvancedTracking();
+                alert('Historial de preguntas reiniciado correctamente.');
+            }
         }
 
         // Frases motivacionales
@@ -499,18 +709,24 @@
                             legalReference: extractLegalReference(parts[7])
                         };
                         
-                        // Initialize occurrences
-                        if (!questionOccurrences[question.id]) {
-                            questionOccurrences[question.id] = 0;
-                        }
-                        
                         questionsDB.push(question);
                     }
                 }
                 
+                // Inicializar tracking para nuevas preguntas
+                questionsDB.forEach(q => {
+                    if (!advancedTracking.occurrences[q.id]) {
+                        advancedTracking.occurrences[q.id] = 0;
+                    }
+                    if (!advancedTracking.lastShown[q.id]) {
+                        advancedTracking.lastShown[q.id] = 0;
+                    }
+                });
+                
+                saveAdvancedTracking();
+                
                 document.getElementById('startButton').disabled = false;
                 document.querySelector('.file-info').textContent = `✅ Archivo cargado: ${questionsDB.length} preguntas encontradas`;
-                saveOccurrences();
                 
             } catch (error) {
                 alert('Error al procesar el archivo CSV: ' + error.message);
@@ -724,26 +940,6 @@
             return newArray;
         }
 
-        // Función para seleccionar preguntas aleatorias
-        function selectRandomQuestions(num, category) {
-            let availableQuestions = questionsDB;
-            
-            if (category !== 'TODO') {
-                availableQuestions = questionsDB.filter(q => q.category === category);
-            }
-
-            // Ordenar por número de ocurrencias (menos vistas primero)
-            availableQuestions.sort((a, b) => {
-                return (questionOccurrences[a.id] || 0) - (questionOccurrences[b.id] || 0);
-            });
-
-            // Tomar las preguntas menos vistas y mezclarlas
-            const leastSeenQuestions = availableQuestions.slice(0, num * 2);
-            const shuffled = shuffleArray(leastSeenQuestions);
-            
-            return shuffled.slice(0, Math.min(num, shuffled.length));
-        }
-
         // Función para iniciar el quiz
         function startQuiz() {
             if (questionsDB.length === 0) {
@@ -754,11 +950,11 @@
             const numQuestions = parseInt(document.getElementById('numQuestions').value);
             const category = document.getElementById('category').value;
 
-            // Cargar ocurrencias
-            loadOccurrences();
+            // Cargar tracking avanzado
+            loadAdvancedTracking();
 
-            // Seleccionar preguntas
-            const selectedQuestions = selectRandomQuestions(numQuestions, category);
+            // Seleccionar preguntas con algoritmo mejorado
+            const selectedQuestions = selectRandomQuestionsAdvanced(numQuestions, category);
             
             if (selectedQuestions.length === 0) {
                 alert('No hay preguntas disponibles para la categoría seleccionada.');
@@ -801,9 +997,10 @@
         function showQuestion() {
             const question = currentQuiz.questions[currentQuiz.currentIndex];
             
-            // Incrementar contador de ocurrencias
-            questionOccurrences[question.id] = (questionOccurrences[question.id] || 0) + 1;
-            saveOccurrences();
+            // Incrementar contador de ocurrencias y actualizar timestamp
+            advancedTracking.occurrences[question.id] = (advancedTracking.occurrences[question.id] || 0) + 1;
+            advancedTracking.lastShown[question.id] = new Date().getTime();
+            saveAdvancedTracking();
 
             // Actualizar progreso
             const progress = ((currentQuiz.currentIndex + 1) / currentQuiz.questions.length) * 100;
@@ -949,7 +1146,7 @@
                 tr.innerHTML = `
                     <td>${q.id}</td>
                     <td>${q.question.substring(0, 50)}...</td>
-                    <td>${questionOccurrences[q.id] || 0}</td>
+                    <td>${advancedTracking.occurrences[q.id] || 0}</td>
                 `;
                 tableBody.appendChild(tr);
             });
@@ -968,7 +1165,7 @@
 
         // Inicializar al cargar la página
         window.onload = function() {
-            loadOccurrences();
+            loadAdvancedTracking();
             // Auto-load CSV if available in the same directory
             fetch('PreguntasFlash.csv')
                 .then(response => response.text())
