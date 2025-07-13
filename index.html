@@ -320,7 +320,7 @@
             <div class="form-group">
                 <label for="csvFile">Cargar archivo CSV con preguntas:</label>
                 <input type="file" id="csvFile" accept=".csv" />
-                <div class="file-info">El archivo debe llamarse "PreguntasFlash.csv" y estar en el formato correcto</div>
+                <div class="file-info">El archivo debe llamarse "PreguntasFlash.csv" o "TEST_JC.csv"</div>
             </div>
             
             <div class="form-group">
@@ -432,14 +432,14 @@
         };
 
         // Sistema avanzado de tracking con historial de sesiones
-        const TRACKING_VERSION = '2.0'; // Versión del sistema de tracking
+        const TRACKING_VERSION = '2.0';
         let advancedTracking = {
             version: TRACKING_VERSION,
-            occurrences: {},           // Contador total de veces mostrada cada pregunta
-            sessionHistory: [],        // Historial de las últimas sesiones
-            lastShown: {},            // Última vez que se mostró cada pregunta (timestamp)
-            cooldownPeriod: 3,        // Número de sesiones antes de poder repetir
-            maxSessionHistory: 10     // Máximo de sesiones a recordar
+            occurrences: {},
+            sessionHistory: [],
+            lastShown: {},
+            cooldownPeriod: 3,
+            maxSessionHistory: 10
         };
 
         // Cargar datos avanzados del localStorage
@@ -448,11 +448,9 @@
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    // Verificar versión y migrar si es necesario
                     if (parsed.version === TRACKING_VERSION) {
                         advancedTracking = parsed;
                     } else {
-                        // Migrar datos antiguos si existen
                         migrateOldData();
                     }
                 } catch (e) {
@@ -498,153 +496,6 @@
             localStorage.setItem('advancedQuestionTracking', JSON.stringify(advancedTracking));
         }
 
-        // Algoritmo mejorado de selección aleatoria
-        function selectRandomQuestionsAdvanced(num, category) {
-            let availableQuestions = questionsDB;
-            
-            if (category !== 'TODO') {
-                availableQuestions = questionsDB.filter(q => q.category === category);
-            }
-
-            // Crear un pool de preguntas elegibles
-            const currentSession = new Date().getTime();
-            const recentlyShownIds = getRecentlyShownQuestions();
-            
-            // Separar preguntas en categorías
-            const neverShown = [];
-            const eligibleForRepeat = [];
-            const recentlyShown = [];
-            
-            availableQuestions.forEach(q => {
-                if (advancedTracking.occurrences[q.id] === 0) {
-                    // Nunca mostradas - máxima prioridad
-                    neverShown.push(q);
-                } else if (recentlyShownIds.includes(q.id)) {
-                    // Mostradas recientemente - menor prioridad
-                    recentlyShown.push(q);
-                } else {
-                    // Elegibles para repetir
-                    eligibleForRepeat.push(q);
-                }
-            });
-
-            // Construir pool final con prioridades
-            let finalPool = [];
-            
-            // 1. Primero las nunca mostradas
-            finalPool = finalPool.concat(neverShown);
-            
-            // 2. Luego las elegibles, ordenadas por menor frecuencia
-            eligibleForRepeat.sort((a, b) => {
-                const scoreA = calculateQuestionScore(a.id);
-                const scoreB = calculateQuestionScore(b.id);
-                return scoreB - scoreA; // Mayor score = mayor prioridad
-            });
-            finalPool = finalPool.concat(eligibleForRepeat);
-            
-            // 3. Solo si es absolutamente necesario, incluir las recientes
-            if (finalPool.length < num) {
-                recentlyShown.sort((a, b) => {
-                    const scoreA = calculateQuestionScore(a.id);
-                    const scoreB = calculateQuestionScore(b.id);
-                    return scoreB - scoreA;
-                });
-                finalPool = finalPool.concat(recentlyShown);
-            }
-
-            // Aplicar aleatorización Fisher-Yates con sesgo hacia las primeras
-            const selected = [];
-            const poolSize = Math.min(finalPool.length, num * 2); // Limitar el pool para mejor distribución
-            const workingPool = finalPool.slice(0, poolSize);
-            
-            // Aleatorizar el working pool
-            for (let i = workingPool.length - 1; i > 0; i--) {
-                // Sesgo hacia elementos anteriores (mayor prioridad)
-                const maxIndex = Math.min(i + 1, Math.floor(i * 1.5));
-                const j = Math.floor(Math.random() * maxIndex);
-                [workingPool[i], workingPool[j]] = [workingPool[j], workingPool[i]];
-            }
-            
-            // Seleccionar las preguntas finales
-            for (let i = 0; i < Math.min(num, workingPool.length); i++) {
-                selected.push(workingPool[i]);
-            }
-
-            // Registrar esta sesión
-            const sessionQuestions = selected.map(q => q.id);
-            registerNewSession(sessionQuestions);
-
-            return selected;
-        }
-
-        // Calcular score de prioridad para una pregunta
-        function calculateQuestionScore(questionId) {
-            const occurrences = advancedTracking.occurrences[questionId] || 0;
-            const lastShown = advancedTracking.lastShown[questionId] || 0;
-            const currentTime = new Date().getTime();
-            const timeSinceLastShown = currentTime - lastShown;
-            
-            // Factor de ocurrencias (menos veces mostrado = mayor score)
-            const occurrenceScore = 1 / (occurrences + 1);
-            
-            // Factor de tiempo (más tiempo sin mostrar = mayor score)
-            const timeScore = timeSinceLastShown / (1000 * 60 * 60 * 24); // Días desde última vez
-            
-            // Score combinado
-            return occurrenceScore * 100 + timeScore;
-        }
-
-        // Obtener preguntas mostradas recientemente
-        function getRecentlyShownQuestions() {
-            const recentQuestions = new Set();
-            const sessionsToCheck = Math.min(advancedTracking.cooldownPeriod, advancedTracking.sessionHistory.length);
-            
-            for (let i = 0; i < sessionsToCheck; i++) {
-                const session = advancedTracking.sessionHistory[i];
-                if (session && session.questions) {
-                    session.questions.forEach(qId => recentQuestions.add(qId));
-                }
-            }
-            
-            return Array.from(recentQuestions);
-        }
-
-        // Registrar nueva sesión
-        function registerNewSession(questionIds) {
-            const session = {
-                timestamp: new Date().getTime(),
-                questions: questionIds,
-                date: new Date().toISOString()
-            };
-            
-            // Agregar al principio del historial
-            advancedTracking.sessionHistory.unshift(session);
-            
-            // Limitar el tamaño del historial
-            if (advancedTracking.sessionHistory.length > advancedTracking.maxSessionHistory) {
-                advancedTracking.sessionHistory = advancedTracking.sessionHistory.slice(0, advancedTracking.maxSessionHistory);
-            }
-            
-            saveAdvancedTracking();
-        }
-
-        // Función para reiniciar todos los datos
-        function resetAllData() {
-            if (confirm('¿Estás seguro de que quieres reiniciar todo el historial de preguntas? Esta acción no se puede deshacer.')) {
-                advancedTracking = {
-                    version: TRACKING_VERSION,
-                    occurrences: {},
-                    sessionHistory: [],
-                    lastShown: {},
-                    cooldownPeriod: 3,
-                    maxSessionHistory: 10
-                };
-                initializeTracking();
-                saveAdvancedTracking();
-                alert('Historial de preguntas reiniciado correctamente.');
-            }
-        }
-
         // Frases motivacionales
         const motivationalPhrases = {
             correct: [
@@ -678,40 +529,72 @@
                 reader.onload = function(e) {
                     parseCSV(e.target.result);
                 };
-                reader.readAsText(file);
+                reader.readAsText(file, 'UTF-8');
             }
         });
 
-        // Función para parsear el CSV
+        // Función mejorada para parsear el CSV
         function parseCSV(csvText) {
             try {
-                const lines = csvText.split('\n').filter(line => line.trim());
+                console.log('Iniciando parseo del CSV...');
+                
+                // Reemplazar comillas dobles escapadas por comillas simples temporalmente
+                csvText = csvText.replace(/""/g, '§§QUOTE§§');
+                
+                // Dividir por líneas
+                const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+                console.log(`Total de líneas encontradas: ${lines.length}`);
+                
                 questionsDB = [];
                 
-                // Skip header if exists
-                const startIndex = lines[0].includes('Pregunta') ? 1 : 0;
+                // Detectar si la primera línea es un encabezado
+                const firstLine = lines[0];
+                const hasHeader = firstLine.includes('Pregunta') || firstLine.includes('Enunciado');
+                const startIndex = hasHeader ? 1 : 0;
+                
+                console.log(`Procesando desde línea ${startIndex} (header: ${hasHeader})`);
                 
                 for (let i = startIndex; i < lines.length; i++) {
-                    const parts = parseCSVLine(lines[i]);
-                    if (parts.length >= 8) {
-                        const question = {
-                            id: parseInt(parts[0].replace(/"/g, '')),
-                            question: parts[1].replace(/"/g, ''),
-                            options: [
-                                parts[2].replace(/"/g, ''),
-                                parts[3].replace(/"/g, ''),
-                                parts[4].replace(/"/g, ''),
-                                parts[5].replace(/"/g, '')
-                            ],
-                            correctAnswer: parts[6].replace(/"/g, '').charCodeAt(0) - 65, // Convert A,B,C,D to 0,1,2,3
-                            reasoning: parts[7].replace(/"/g, ''),
-                            category: detectCategory(parts[1]), // Auto-detect category from question
-                            legalReference: extractLegalReference(parts[7])
-                        };
+                    try {
+                        const parts = parseCSVLine(lines[i]);
                         
-                        questionsDB.push(question);
+                        if (parts.length >= 8) {
+                            // Restaurar las comillas en cada parte
+                            const cleanParts = parts.map(part => 
+                                part.replace(/§§QUOTE§§/g, '"').trim()
+                            );
+                            
+                            const question = {
+                                id: parseInt(cleanParts[0]) || (i - startIndex + 1),
+                                question: cleanParts[1], // Enunciado
+                                options: [
+                                    cleanParts[2], // Opción A
+                                    cleanParts[3], // Opción B
+                                    cleanParts[4], // Opción C
+                                    cleanParts[5]  // Opción D
+                                ],
+                                correctAnswer: cleanParts[6].toUpperCase().charCodeAt(0) - 65, // A=0, B=1, C=2, D=3
+                                reasoning: cleanParts[7],
+                                category: detectCategory(cleanParts[1]),
+                                legalReference: extractLegalReference(cleanParts[7])
+                            };
+                            
+                            // Validar que la pregunta tenga sentido
+                            if (question.question && question.options.every(opt => opt)) {
+                                questionsDB.push(question);
+                                console.log(`Pregunta ${question.id} procesada correctamente`);
+                            } else {
+                                console.warn(`Pregunta en línea ${i} tiene datos incompletos`);
+                            }
+                        } else {
+                            console.warn(`Línea ${i} tiene solo ${parts.length} columnas, se esperaban 8`);
+                        }
+                    } catch (lineError) {
+                        console.error(`Error procesando línea ${i}:`, lineError);
                     }
                 }
+                
+                console.log(`Total de preguntas cargadas: ${questionsDB.length}`);
                 
                 // Inicializar tracking para nuevas preguntas
                 questionsDB.forEach(q => {
@@ -725,16 +608,20 @@
                 
                 saveAdvancedTracking();
                 
-                document.getElementById('startButton').disabled = false;
-                document.querySelector('.file-info').textContent = `✅ Archivo cargado: ${questionsDB.length} preguntas encontradas`;
+                if (questionsDB.length > 0) {
+                    document.getElementById('startButton').disabled = false;
+                    document.querySelector('.file-info').textContent = `✅ Archivo cargado: ${questionsDB.length} preguntas encontradas`;
+                } else {
+                    document.querySelector('.file-info').textContent = '❌ No se pudieron cargar preguntas del archivo';
+                }
                 
             } catch (error) {
+                console.error('Error al procesar el archivo CSV:', error);
                 alert('Error al procesar el archivo CSV: ' + error.message);
-                console.error(error);
             }
         }
 
-        // Función para parsear una línea CSV considerando comillas
+        // Función mejorada para parsear una línea CSV
         function parseCSVLine(line) {
             const result = [];
             let current = '';
@@ -742,13 +629,19 @@
             
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
+                const nextChar = line[i + 1];
                 
-                if (char === '"' && line[i+1] === '"') {
-                    current += '"';
-                    i++;
-                } else if (char === '"') {
-                    inQuotes = !inQuotes;
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        // Comillas dobles escapadas dentro de comillas
+                        current += '§§QUOTE§§';
+                        i++; // Saltar la siguiente comilla
+                    } else {
+                        // Cambiar estado de comillas
+                        inQuotes = !inQuotes;
+                    }
                 } else if (char === ',' && !inQuotes) {
+                    // Coma fuera de comillas = separador de campo
                     result.push(current);
                     current = '';
                 } else {
@@ -756,18 +649,21 @@
                 }
             }
             
+            // Agregar el último campo
             result.push(current);
+            
             return result;
         }
 
         // Función para detectar la categoría de la pregunta
         function detectCategory(questionText) {
             const text = questionText.toLowerCase();
-            if (text.includes('tribut') || text.includes('fiscal') || text.includes('impuesto')) {
+            if (text.includes('tribut') || text.includes('fiscal') || text.includes('impuesto') || 
+                text.includes('liquidación') || text.includes('retención') || text.includes('lgt')) {
                 return 'administrativo';
-            } else if (text.includes('civil') || text.includes('propiedad')) {
+            } else if (text.includes('civil') || text.includes('propiedad') || text.includes('contrato')) {
                 return 'civil';
-            } else if (text.includes('mercantil') || text.includes('sociedad')) {
+            } else if (text.includes('mercantil') || text.includes('sociedad') || text.includes('empresa')) {
                 return 'mercantil';
             }
             return 'administrativo'; // default
@@ -779,7 +675,6 @@
             if (matches) {
                 return matches[0];
             }
-            // Try to construct a BOE reference if article is mentioned
             const articleMatch = reasoning.match(/artículo\s+(\d+)/i);
             if (articleMatch) {
                 return `https://www.boe.es/buscar/act.php?id=BOE-A-2003-17588#a${articleMatch[1]}`;
@@ -787,146 +682,176 @@
             return 'https://www.boe.es/buscar/act.php?id=BOE-A-2003-17588';
         }
 
-        // Función para generar opciones incorrectas basadas en la correcta
+        // Algoritmo mejorado de selección aleatoria
+        function selectRandomQuestionsAdvanced(num, category) {
+            let availableQuestions = questionsDB;
+            
+            if (category !== 'TODO') {
+                availableQuestions = questionsDB.filter(q => q.category === category);
+            }
+
+            // Crear un pool de preguntas elegibles
+            const currentSession = new Date().getTime();
+            const recentlyShownIds = getRecentlyShownQuestions();
+            
+            // Separar preguntas en categorías
+            const neverShown = [];
+            const eligibleForRepeat = [];
+            const recentlyShown = [];
+            
+            availableQuestions.forEach(q => {
+                if (advancedTracking.occurrences[q.id] === 0) {
+                    neverShown.push(q);
+                } else if (recentlyShownIds.includes(q.id)) {
+                    recentlyShown.push(q);
+                } else {
+                    eligibleForRepeat.push(q);
+                }
+            });
+
+            // Construir pool final con prioridades
+            let finalPool = [];
+            
+            // 1. Primero las nunca mostradas
+            finalPool = finalPool.concat(neverShown);
+            
+            // 2. Luego las elegibles, ordenadas por menor frecuencia
+            eligibleForRepeat.sort((a, b) => {
+                const scoreA = calculateQuestionScore(a.id);
+                const scoreB = calculateQuestionScore(b.id);
+                return scoreB - scoreA;
+            });
+            finalPool = finalPool.concat(eligibleForRepeat);
+            
+            // 3. Solo si es necesario, incluir las recientes
+            if (finalPool.length < num) {
+                recentlyShown.sort((a, b) => {
+                    const scoreA = calculateQuestionScore(a.id);
+                    const scoreB = calculateQuestionScore(b.id);
+                    return scoreB - scoreA;
+                });
+                finalPool = finalPool.concat(recentlyShown);
+            }
+
+            // Aplicar aleatorización
+            const selected = [];
+            const poolSize = Math.min(finalPool.length, num * 2);
+            const workingPool = finalPool.slice(0, poolSize);
+            
+            // Aleatorizar el working pool
+            for (let i = workingPool.length - 1; i > 0; i--) {
+                const maxIndex = Math.min(i + 1, Math.floor(i * 1.5));
+                const j = Math.floor(Math.random() * maxIndex);
+                [workingPool[i], workingPool[j]] = [workingPool[j], workingPool[i]];
+            }
+            
+            // Seleccionar las preguntas finales
+            for (let i = 0; i < Math.min(num, workingPool.length); i++) {
+                selected.push(workingPool[i]);
+            }
+
+            // Registrar esta sesión
+            const sessionQuestions = selected.map(q => q.id);
+            registerNewSession(sessionQuestions);
+
+            return selected;
+        }
+
+        // Calcular score de prioridad para una pregunta
+        function calculateQuestionScore(questionId) {
+            const occurrences = advancedTracking.occurrences[questionId] || 0;
+            const lastShown = advancedTracking.lastShown[questionId] || 0;
+            const currentTime = new Date().getTime();
+            const timeSinceLastShown = currentTime - lastShown;
+            
+            const occurrenceScore = 1 / (occurrences + 1);
+            const timeScore = timeSinceLastShown / (1000 * 60 * 60 * 24);
+            
+            return occurrenceScore * 100 + timeScore;
+        }
+
+        // Obtener preguntas mostradas recientemente
+        function getRecentlyShownQuestions() {
+            const recentQuestions = new Set();
+            const sessionsToCheck = Math.min(advancedTracking.cooldownPeriod, advancedTracking.sessionHistory.length);
+            
+            for (let i = 0; i < sessionsToCheck; i++) {
+                const session = advancedTracking.sessionHistory[i];
+                if (session && session.questions) {
+                    session.questions.forEach(qId => recentQuestions.add(qId));
+                }
+            }
+            
+            return Array.from(recentQuestions);
+        }
+
+        // Registrar nueva sesión
+        function registerNewSession(questionIds) {
+            const session = {
+                timestamp: new Date().getTime(),
+                questions: questionIds,
+                date: new Date().toISOString()
+            };
+            
+            advancedTracking.sessionHistory.unshift(session);
+            
+            if (advancedTracking.sessionHistory.length > advancedTracking.maxSessionHistory) {
+                advancedTracking.sessionHistory = advancedTracking.sessionHistory.slice(0, advancedTracking.maxSessionHistory);
+            }
+            
+            saveAdvancedTracking();
+        }
+
+        // Función para reiniciar todos los datos
+        function resetAllData() {
+            if (confirm('¿Estás seguro de que quieres reiniciar todo el historial de preguntas? Esta acción no se puede deshacer.')) {
+                advancedTracking = {
+                    version: TRACKING_VERSION,
+                    occurrences: {},
+                    sessionHistory: [],
+                    lastShown: {},
+                    cooldownPeriod: 3,
+                    maxSessionHistory: 10
+                };
+                initializeTracking();
+                saveAdvancedTracking();
+                alert('Historial de preguntas reiniciado correctamente.');
+            }
+        }
+
+        // Función para generar opciones incorrectas
         function generateIncorrectOptions(correctOption, question) {
             const incorrectOptions = [];
             const usedOptions = new Set([correctOption]);
             
-            // Estrategias para generar opciones incorrectas confusas
-            const strategies = [
-                // Cambiar plazos
-                () => {
-                    const plazos = ['3 días', '5 días', '10 días', '15 días', '20 días', '30 días', '2 meses', '3 meses', '6 meses', '1 año'];
-                    const plazoPattern = /\d+\s*(días?|meses?|años?)/g;
-                    if (plazoPattern.test(correctOption)) {
-                        return correctOption.replace(plazoPattern, (match) => {
-                            const newPlazo = plazos[Math.floor(Math.random() * plazos.length)];
-                            return newPlazo;
-                        });
-                    }
-                    return null;
-                },
-                // Cambiar porcentajes
-                () => {
-                    const porcentajes = ['5%', '10%', '15%', '20%', '25%', '30%', '50%', '75%'];
-                    const porcentajePattern = /\d+\s*%/g;
-                    if (porcentajePattern.test(correctOption)) {
-                        return correctOption.replace(porcentajePattern, (match) => {
-                            const newPorcentaje = porcentajes[Math.floor(Math.random() * porcentajes.length)];
-                            return newPorcentaje;
-                        });
-                    }
-                    return null;
-                },
-                // Cambiar cantidades
-                () => {
-                    const cantidades = ['1.000', '2.500', '3.000', '5.000', '6.000', '10.000', '20.000', '50.000'];
-                    const cantidadPattern = /\d{1,3}(\.\d{3})*/g;
-                    if (cantidadPattern.test(correctOption)) {
-                        return correctOption.replace(cantidadPattern, (match) => {
-                            const newCantidad = cantidades[Math.floor(Math.random() * cantidades.length)];
-                            return newCantidad;
-                        });
-                    }
-                    return null;
-                },
-                // Invertir el sentido (afirmativo/negativo)
-                () => {
-                    if (correctOption.includes('no ')) {
-                        return correctOption.replace(/no /g, '');
-                    } else if (correctOption.includes(' podrá')) {
-                        return correctOption.replace(/ podrá/g, ' no podrá');
-                    } else if (correctOption.includes(' deberá')) {
-                        return correctOption.replace(/ deberá/g, ' no deberá');
-                    } else if (correctOption.includes(' será')) {
-                        return correctOption.replace(/ será/g, ' no será');
-                    }
-                    return null;
-                },
-                // Cambiar sujetos
-                () => {
-                    const sujetos = {
-                        'obligado tributario': ['contribuyente', 'sujeto pasivo', 'administrado', 'interesado'],
-                        'Administración': ['órgano competente', 'autoridad tributaria', 'Hacienda Pública'],
-                        'inspector': ['actuario', 'funcionario', 'órgano de inspección'],
-                        'Estado': ['Administración General del Estado', 'Poder Ejecutivo', 'Gobierno'],
-                        'CCAA': ['Comunidades Autónomas', 'entes autonómicos', 'administraciones autonómicas']
-                    };
-                    
-                    for (const [original, alternativas] of Object.entries(sujetos)) {
-                        if (correctOption.includes(original)) {
-                            const nueva = alternativas[Math.floor(Math.random() * alternativas.length)];
-                            return correctOption.replace(new RegExp(original, 'g'), nueva);
-                        }
-                    }
-                    return null;
-                },
-                // Cambiar verbos modales
-                () => {
-                    const cambios = {
-                        'podrá': ['deberá', 'tendrá que', 'estará obligado a'],
-                        'deberá': ['podrá', 'estará facultado para', 'tendrá la posibilidad de'],
-                        'será': ['podrá ser', 'deberá ser', 'tendrá que ser']
-                    };
-                    
-                    for (const [original, alternativas] of Object.entries(cambios)) {
-                        if (correctOption.includes(original)) {
-                            const nueva = alternativas[Math.floor(Math.random() * alternativas.length)];
-                            return correctOption.replace(new RegExp(original, 'g'), nueva);
-                        }
-                    }
-                    return null;
-                }
-            ];
-
-            // Aplicar estrategias hasta tener 3 opciones incorrectas únicas
-            let attempts = 0;
-            while (incorrectOptions.length < 3 && attempts < 50) {
-                attempts++;
-                const strategy = strategies[Math.floor(Math.random() * strategies.length)];
-                const newOption = strategy();
-                
-                if (newOption && !usedOptions.has(newOption)) {
-                    incorrectOptions.push(newOption);
-                    usedOptions.add(newOption);
-                } else {
-                    // Si no se puede generar con estrategias, crear variación manual
-                    const variation = createManualVariation(correctOption, question);
-                    if (variation && !usedOptions.has(variation)) {
-                        incorrectOptions.push(variation);
-                        usedOptions.add(variation);
-                    }
+            // Usar las opciones del CSV que no son la correcta
+            for (let i = 0; i < question.options.length; i++) {
+                if (i !== question.correctAnswer && !usedOptions.has(question.options[i])) {
+                    incorrectOptions.push(question.options[i]);
+                    usedOptions.add(question.options[i]);
                 }
             }
-
-            // Si aún faltan opciones, usar las opciones originales del CSV
-            if (incorrectOptions.length < 3) {
-                for (let i = 0; i < question.options.length && incorrectOptions.length < 3; i++) {
-                    if (i !== question.correctAnswer && !usedOptions.has(question.options[i])) {
-                        incorrectOptions.push(question.options[i]);
-                        usedOptions.add(question.options[i]);
-                    }
+            
+            // Si necesitamos más opciones (aunque no debería pasar con el formato actual)
+            while (incorrectOptions.length < 3) {
+                const variation = createManualVariation(correctOption, question);
+                if (variation && !usedOptions.has(variation)) {
+                    incorrectOptions.push(variation);
+                    usedOptions.add(variation);
                 }
             }
-
+            
             return incorrectOptions.slice(0, 3);
         }
 
         // Función para crear variaciones manuales
         function createManualVariation(correctOption, question) {
             const variations = [
-                correctOption + ', salvo autorización expresa',
-                correctOption + ', sin excepción alguna',
-                correctOption.replace(/\.$/, ', en todo caso.'),
-                'Exclusivamente ' + correctOption.toLowerCase(),
-                'Únicamente ' + correctOption.toLowerCase(),
-                correctOption.replace(/^Las?/, 'Todas las').replace(/^Los?/, 'Todos los'),
-                correctOption.replace(/podrán/, 'deberán').replace(/podrá/, 'deberá'),
-                correctOption.replace(/será/, 'podrá ser').replace(/serán/, 'podrán ser'),
                 'Ninguna de las anteriores es correcta',
-                'Todas las anteriores son correctas'
+                'Todas las anteriores son correctas',
+                'Solo a) y b) son correctas',
+                'Solo b) y c) son correctas'
             ];
-
             return variations[Math.floor(Math.random() * variations.length)];
         }
 
@@ -961,19 +886,13 @@
                 return;
             }
 
-            // Preparar las preguntas con opciones mezcladas
+            // Preparar las preguntas
             currentQuiz.questions = selectedQuestions.map(q => {
-                const correctOption = q.options[q.correctAnswer];
-                const incorrectOptions = generateIncorrectOptions(correctOption, q);
-                
-                // Mezclar todas las opciones
-                const allOptions = shuffleArray([correctOption, ...incorrectOptions]);
-                const newCorrectIndex = allOptions.indexOf(correctOption);
-
+                // Usar directamente las opciones del CSV
                 return {
                     ...q,
-                    shuffledOptions: allOptions,
-                    shuffledCorrectIndex: newCorrectIndex
+                    shuffledOptions: [...q.options],
+                    shuffledCorrectIndex: q.correctAnswer
                 };
             });
 
@@ -997,7 +916,7 @@
         function showQuestion() {
             const question = currentQuiz.questions[currentQuiz.currentIndex];
             
-            // Incrementar contador de ocurrencias y actualizar timestamp
+            // Incrementar contador de ocurrencias
             advancedTracking.occurrences[question.id] = (advancedTracking.occurrences[question.id] || 0) + 1;
             advancedTracking.lastShown[question.id] = new Date().getTime();
             saveAdvancedTracking();
@@ -1138,7 +1057,6 @@
             const tableBody = document.getElementById('occurrenceTableBody');
             tableBody.innerHTML = '';
 
-            // Ordenar preguntas por ID
             const sortedQuestions = [...questionsDB].sort((a, b) => a.id - b.id);
 
             sortedQuestions.forEach(q => {
@@ -1166,15 +1084,26 @@
         // Inicializar al cargar la página
         window.onload = function() {
             loadAdvancedTracking();
-            // Auto-load CSV if available in the same directory
-            fetch('PreguntasFlash.csv')
-                .then(response => response.text())
-                .then(data => {
-                    parseCSV(data);
-                })
-                .catch(error => {
-                    console.log('No se encontró archivo CSV automático, esperando carga manual');
-                });
+            
+            // Intentar cargar archivos CSV automáticamente
+            const possibleFiles = ['PreguntasFlash.csv', 'TEST_JC.csv'];
+            
+            possibleFiles.forEach(filename => {
+                fetch(filename)
+                    .then(response => {
+                        if (response.ok) {
+                            return response.text();
+                        }
+                        throw new Error('File not found');
+                    })
+                    .then(data => {
+                        console.log(`Archivo ${filename} encontrado, cargando...`);
+                        parseCSV(data);
+                    })
+                    .catch(error => {
+                        console.log(`No se encontró ${filename}`);
+                    });
+            });
         };
     </script>
 </body>
