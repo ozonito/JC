@@ -45,15 +45,19 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
-        h1 {
+        h1, h2, h3 {
             text-align: center;
             color: var(--accent);
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
         }
 
-        .config-section {
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        .section {
             background-color: var(--bg-card);
             padding: 25px;
             border-radius: 15px;
@@ -61,7 +65,7 @@
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         label {
@@ -71,7 +75,7 @@
             font-weight: 500;
         }
 
-        select, button, input[type="file"] {
+        select, button, input[type="file"], input[type="text"] {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -106,11 +110,93 @@
             transform: none;
         }
 
+        .success-button {
+            background-color: var(--success);
+        }
+
+        .warning-button {
+            background-color: var(--warning);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .info-text {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+
+        .error-text {
+            color: var(--error);
+            background-color: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success-text {
+            color: var(--success);
+            background-color: rgba(74, 222, 128, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .preview-table th, .preview-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        .preview-table th {
+            background-color: var(--bg-card);
+            color: var(--accent);
+        }
+
+        .delimiter-options {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .delimiter-option {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .delimiter-option:hover, .delimiter-option.active {
+            border-color: var(--accent);
+            background-color: rgba(233, 69, 96, 0.2);
+        }
+
+        .delimiter-option.active {
+            background-color: rgba(233, 69, 96, 0.3);
+            font-weight: bold;
+        }
+
+        /* Estilos para la sección de quiz */
         .quiz-section {
             display: none;
-            background-color: var(--bg-card);
-            padding: 25px;
-            border-radius: 15px;
         }
 
         .progress-bar {
@@ -202,11 +288,9 @@
             font-size: 1.1em;
         }
 
+        /* Estilos para la sección de resultados */
         .results-section {
             display: none;
-            background-color: var(--bg-card);
-            padding: 25px;
-            border-radius: 15px;
         }
 
         .stats {
@@ -275,30 +359,9 @@
             background-color: rgba(233, 69, 96, 0.1);
         }
 
-        .hidden {
-            display: none !important;
-        }
-
-        .file-info {
-            color: var(--text-secondary);
-            font-size: 0.9em;
-            margin-top: 10px;
-        }
-
-        .reset-button {
-            background-color: var(--warning);
-            margin-top: 10px;
-            font-size: 0.9em;
-            padding: 8px;
-        }
-
-        .reset-button:hover {
-            background-color: #dc7a0b;
-        }
-
         @media (max-width: 600px) {
             .container {
-                padding: 20px;
+                padding: 15px;
             }
             
             h1 {
@@ -315,42 +378,85 @@
     <div class="container">
         <h1>📚 Sistema de Flashcards Tributarias</h1>
         
-        <!-- Configuración inicial -->
-        <div id="configSection" class="config-section">
+        <!-- Sección de configuración inicial y carga de CSV -->
+        <div id="configSection" class="section">
+            <h2>Cargar archivo CSV</h2>
+            
             <div class="form-group">
-                <label for="csvFile">Cargar archivo CSV con preguntas:</label>
+                <label for="csvFile">Seleccionar archivo CSV:</label>
                 <input type="file" id="csvFile" accept=".csv" />
-                <div class="file-info">El archivo debe llamarse "PreguntasFlash.csv" o "TEST_JC.csv"</div>
+                <div id="fileInfo" class="info-text">Seleccione un archivo CSV con las preguntas para el quiz</div>
             </div>
             
-            <div class="form-group">
-                <label for="numQuestions">Número de preguntas:</label>
-                <select id="numQuestions">
-                    <option value="5">5 preguntas</option>
-                    <option value="10">10 preguntas</option>
-                    <option value="15">15 preguntas</option>
-                    <option value="20">20 preguntas</option>
-                    <option value="25">25 preguntas</option>
-                    <option value="30">30 preguntas</option>
-                </select>
+            <div id="csvOptionsSection" class="hidden">
+                <h3>Opciones de importación</h3>
+                
+                <div class="form-group">
+                    <label>Seleccione el delimitador:</label>
+                    <div class="delimiter-options">
+                        <div class="delimiter-option active" data-delimiter=",">Coma (,)</div>
+                        <div class="delimiter-option" data-delimiter=";">Punto y coma (;)</div>
+                        <div class="delimiter-option" data-delimiter="\t">Tabulador</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="encodingSelect">Codificación:</label>
+                    <select id="encodingSelect">
+                        <option value="utf-8">UTF-8</option>
+                        <option value="iso-8859-1">ISO-8859-1 (Latin-1)</option>
+                        <option value="windows-1252">Windows-1252</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Vista previa:</label>
+                    <div class="preview-container">
+                        <table class="preview-table" id="previewTable">
+                            <thead>
+                                <tr id="previewHeader"></tr>
+                            </thead>
+                            <tbody id="previewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <button id="processCSVButton" class="success-button">Procesar archivo CSV</button>
+                <div id="processResult" class="info-text"></div>
             </div>
             
-            <div class="form-group">
-                <label for="category">Bloque temático:</label>
-                <select id="category">
-                    <option value="TODO">Todas las categorías</option>
-                    <option value="administrativo">Administrativo</option>
-                    <option value="civil">Civil</option>
-                    <option value="mercantil">Mercantil</option>
-                </select>
+            <div id="quizOptionsSection" class="hidden">
+                <h3>Configurar quiz</h3>
+                
+                <div class="form-group">
+                    <label for="numQuestions">Número de preguntas:</label>
+                    <select id="numQuestions">
+                        <option value="5">5 preguntas</option>
+                        <option value="10">10 preguntas</option>
+                        <option value="15">15 preguntas</option>
+                        <option value="20">20 preguntas</option>
+                        <option value="25">25 preguntas</option>
+                        <option value="30">30 preguntas</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">Bloque temático:</label>
+                    <select id="category">
+                        <option value="TODO">Todas las categorías</option>
+                        <option value="administrativo">Administrativo</option>
+                        <option value="civil">Civil</option>
+                        <option value="mercantil">Mercantil</option>
+                    </select>
+                </div>
+                
+                <button id="startQuizButton">🚀 Comenzar Quiz</button>
+                <button id="resetDataButton" class="warning-button">🔄 Reiniciar historial de preguntas</button>
             </div>
-            
-            <button onclick="startQuiz()" id="startButton" disabled>🚀 Comenzar Quiz</button>
-            <button class="reset-button" onclick="resetAllData()">🔄 Reiniciar historial de preguntas</button>
         </div>
         
         <!-- Sección del quiz -->
-        <div id="quizSection" class="quiz-section">
+        <div id="quizSection" class="section quiz-section">
             <div class="progress-bar">
                 <div id="progressFill" class="progress-fill"></div>
             </div>
@@ -365,14 +471,12 @@
             
             <div id="motivationalMessage" class="motivational-message"></div>
             
-            <button id="nextButton" onclick="nextQuestion()" style="display: none; margin-top: 20px;">
-                Siguiente pregunta ➡️
-            </button>
+            <button id="nextButton" class="hidden">Siguiente pregunta ➡️</button>
         </div>
         
         <!-- Sección de resultados -->
-        <div id="resultsSection" class="results-section">
-            <h2 style="text-align: center; margin-bottom: 20px;">📊 Resultados del Quiz</h2>
+        <div id="resultsSection" class="section results-section">
+            <h2>📊 Resultados del Quiz</h2>
             
             <div class="stats">
                 <div class="stat-card">
@@ -410,17 +514,30 @@
             
             <div id="finalMessage" class="motivational-message" style="margin-top: 30px; font-size: 1.2em;"></div>
             
-            <button onclick="resetQuiz()" style="margin-top: 20px;">
-                🔄 Nuevo Quiz
-            </button>
+            <button id="newQuizButton">🔄 Nuevo Quiz</button>
         </div>
     </div>
 
     <script>
-        // Base de datos de preguntas
-        let questionsDB = [];
-        
         // Variables globales
+        let questionsDB = [];
+        let rawCSVContent = '';
+        let selectedDelimiter = ',';
+        let selectedEncoding = 'utf-8';
+        let fileDecoder = new TextDecoder(selectedEncoding);
+        
+        // Sistema de tracking
+        const TRACKING_VERSION = '3.0';
+        let advancedTracking = {
+            version: TRACKING_VERSION,
+            occurrences: {},
+            sessionHistory: [],
+            lastShown: {},
+            cooldownPeriod: 3,
+            maxSessionHistory: 10
+        };
+        
+        // Variables para el quiz actual
         let currentQuiz = {
             questions: [],
             currentIndex: 0,
@@ -430,71 +547,6 @@
             startTime: null,
             endTime: null
         };
-
-        // Sistema avanzado de tracking con historial de sesiones
-        const TRACKING_VERSION = '2.0';
-        let advancedTracking = {
-            version: TRACKING_VERSION,
-            occurrences: {},
-            sessionHistory: [],
-            lastShown: {},
-            cooldownPeriod: 3,
-            maxSessionHistory: 10
-        };
-
-        // Cargar datos avanzados del localStorage
-        function loadAdvancedTracking() {
-            const saved = localStorage.getItem('advancedQuestionTracking');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.version === TRACKING_VERSION) {
-                        advancedTracking = parsed;
-                    } else {
-                        migrateOldData();
-                    }
-                } catch (e) {
-                    console.error('Error loading tracking data:', e);
-                    initializeTracking();
-                }
-            } else {
-                initializeTracking();
-            }
-        }
-
-        // Inicializar sistema de tracking
-        function initializeTracking() {
-            questionsDB.forEach(q => {
-                advancedTracking.occurrences[q.id] = 0;
-                advancedTracking.lastShown[q.id] = 0;
-            });
-        }
-
-        // Migrar datos antiguos
-        function migrateOldData() {
-            const oldOccurrences = localStorage.getItem('questionOccurrences');
-            if (oldOccurrences) {
-                try {
-                    const parsed = JSON.parse(oldOccurrences);
-                    advancedTracking.occurrences = parsed;
-                    questionsDB.forEach(q => {
-                        if (!advancedTracking.occurrences[q.id]) {
-                            advancedTracking.occurrences[q.id] = 0;
-                        }
-                        advancedTracking.lastShown[q.id] = 0;
-                    });
-                } catch (e) {
-                    initializeTracking();
-                }
-            } else {
-                initializeTracking();
-            }
-        }
-
-        // Guardar datos avanzados en localStorage
-        function saveAdvancedTracking() {
-            localStorage.setItem('advancedQuestionTracking', JSON.stringify(advancedTracking));
-        }
 
         // Frases motivacionales
         const motivationalPhrases = {
@@ -521,256 +573,439 @@
             ]
         };
 
-        // Función para cargar el archivo CSV
-        document.getElementById('csvFile').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    parseCSV(e.target.result);
-                };
-                reader.readAsText(file, 'UTF-8');
-            }
-        });
+        // Referencias a elementos DOM frecuentemente utilizados
+        const elements = {
+            csvFile: document.getElementById('csvFile'),
+            fileInfo: document.getElementById('fileInfo'),
+            csvOptionsSection: document.getElementById('csvOptionsSection'),
+            quizOptionsSection: document.getElementById('quizOptionsSection'),
+            processCSVButton: document.getElementById('processCSVButton'),
+            processResult: document.getElementById('processResult'),
+            encodingSelect: document.getElementById('encodingSelect'),
+            previewTable: document.getElementById('previewTable'),
+            previewHeader: document.getElementById('previewHeader'),
+            previewBody: document.getElementById('previewBody'),
+            startQuizButton: document.getElementById('startQuizButton'),
+            resetDataButton: document.getElementById('resetDataButton'),
+            configSection: document.getElementById('configSection'),
+            quizSection: document.getElementById('quizSection'),
+            resultsSection: document.getElementById('resultsSection'),
+            questionCounter: document.getElementById('questionCounter'),
+            questionText: document.getElementById('questionText'),
+            optionsContainer: document.getElementById('optionsContainer'),
+            feedback: document.getElementById('feedback'),
+            motivationalMessage: document.getElementById('motivationalMessage'),
+            nextButton: document.getElementById('nextButton'),
+            correctCount: document.getElementById('correctCount'),
+            incorrectCount: document.getElementById('incorrectCount'),
+            scorePercentage: document.getElementById('scorePercentage'),
+            reviewItems: document.getElementById('reviewItems'),
+            occurrenceTableBody: document.getElementById('occurrenceTableBody'),
+            finalMessage: document.getElementById('finalMessage'),
+            newQuizButton: document.getElementById('newQuizButton'),
+            progressFill: document.getElementById('progressFill')
+        };
 
-        // Función mejorada para parsear el CSV
-        function parseCSV(csvText) {
-            try {
-                console.log('Iniciando parseo del CSV...');
-                
-                // Reemplazar comillas dobles escapadas por comillas simples temporalmente
-                csvText = csvText.replace(/""/g, '§§QUOTE§§');
-                
-                // Dividir por líneas
-                const lines = csvText.split(/\r?\n/).filter(line => line.trim());
-                console.log(`Total de líneas encontradas: ${lines.length}`);
-                
-                questionsDB = [];
-                
-                // Detectar si la primera línea es un encabezado
-                const firstLine = lines[0];
-                const hasHeader = firstLine.includes('Pregunta') || firstLine.includes('Enunciado');
-                const startIndex = hasHeader ? 1 : 0;
-                
-                console.log(`Procesando desde línea ${startIndex} (header: ${hasHeader})`);
-                
-                for (let i = startIndex; i < lines.length; i++) {
-                    try {
-                        const parts = parseCSVLine(lines[i]);
-                        
-                        if (parts.length >= 8) {
-                            // Restaurar las comillas en cada parte
-                            const cleanParts = parts.map(part => 
-                                part.replace(/§§QUOTE§§/g, '"').trim()
-                            );
-                            
-                            const question = {
-                                id: parseInt(cleanParts[0]) || (i - startIndex + 1),
-                                question: cleanParts[1], // Enunciado
-                                options: [
-                                    cleanParts[2], // Opción A
-                                    cleanParts[3], // Opción B
-                                    cleanParts[4], // Opción C
-                                    cleanParts[5]  // Opción D
-                                ],
-                                correctAnswer: cleanParts[6].toUpperCase().charCodeAt(0) - 65, // A=0, B=1, C=2, D=3
-                                reasoning: cleanParts[7],
-                                category: detectCategory(cleanParts[1]),
-                                legalReference: extractLegalReference(cleanParts[7])
-                            };
-                            
-                            // Validar que la pregunta tenga sentido
-                            if (question.question && question.options.every(opt => opt)) {
-                                questionsDB.push(question);
-                                console.log(`Pregunta ${question.id} procesada correctamente`);
-                            } else {
-                                console.warn(`Pregunta en línea ${i} tiene datos incompletos`);
-                            }
-                        } else {
-                            console.warn(`Línea ${i} tiene solo ${parts.length} columnas, se esperaban 8`);
-                        }
-                    } catch (lineError) {
-                        console.error(`Error procesando línea ${i}:`, lineError);
-                    }
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar datos de tracking
+            loadAdvancedTracking();
+            
+            // Listener para selección de archivo CSV
+            elements.csvFile.addEventListener('change', handleFileSelection);
+            
+            // Listener para cambio de codificación
+            elements.encodingSelect.addEventListener('change', function() {
+                selectedEncoding = this.value;
+                fileDecoder = new TextDecoder(selectedEncoding);
+                if (rawCSVContent) {
+                    parseCSVPreview();
                 }
-                
-                console.log(`Total de preguntas cargadas: ${questionsDB.length}`);
-                
-                // Inicializar tracking para nuevas preguntas
-                questionsDB.forEach(q => {
-                    if (!advancedTracking.occurrences[q.id]) {
-                        advancedTracking.occurrences[q.id] = 0;
-                    }
-                    if (!advancedTracking.lastShown[q.id]) {
-                        advancedTracking.lastShown[q.id] = 0;
+            });
+            
+            // Listeners para opciones de delimitador
+            document.querySelectorAll('.delimiter-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.delimiter-option').forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedDelimiter = this.dataset.delimiter;
+                    if (rawCSVContent) {
+                        parseCSVPreview();
                     }
                 });
+            });
+            
+            // Listener para procesar CSV
+            elements.processCSVButton.addEventListener('click', processCSV);
+            
+            // Listener para iniciar quiz
+            elements.startQuizButton.addEventListener('click', startQuiz);
+            
+            // Listener para reiniciar datos
+            elements.resetDataButton.addEventListener('click', resetAllData);
+            
+            // Listener para siguiente pregunta
+            elements.nextButton.addEventListener('click', nextQuestion);
+            
+            // Listener para nuevo quiz
+            elements.newQuizButton.addEventListener('click', resetQuiz);
+        });
+
+        // Función para manejar la selección de archivo
+        function handleFileSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            elements.fileInfo.textContent = `Archivo seleccionado: ${file.name}`;
+            elements.fileInfo.className = 'info-text';
+            
+            // Leer el archivo como ArrayBuffer para manejar correctamente la codificación
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const arrayBuffer = e.target.result;
+                    rawCSVContent = new Uint8Array(arrayBuffer);
+                    parseCSVPreview();
+                    elements.csvOptionsSection.classList.remove('hidden');
+                } catch (error) {
+                    showError(`Error al leer el archivo: ${error.message}`);
+                }
+            };
+            reader.onerror = function() {
+                showError('Error al leer el archivo.');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Función para mostrar una vista previa del CSV
+        function parseCSVPreview() {
+            try {
+                const text = fileDecoder.decode(rawCSVContent);
+                const lines = text.split(/\r?\n/).filter(line => line.trim());
                 
-                saveAdvancedTracking();
-                
-                if (questionsDB.length > 0) {
-                    document.getElementById('startButton').disabled = false;
-                    document.querySelector('.file-info').textContent = `✅ Archivo cargado: ${questionsDB.length} preguntas encontradas`;
-                } else {
-                    document.querySelector('.file-info').textContent = '❌ No se pudieron cargar preguntas del archivo';
+                if (lines.length === 0) {
+                    showError('El archivo está vacío.');
+                    return;
                 }
                 
+                // Intentar detectar si hay encabezado
+                const firstLine = lines[0];
+                const hasHeader = firstLine.toLowerCase().includes('pregunta') || 
+                                 firstLine.toLowerCase().includes('enunciado') ||
+                                 firstLine.toLowerCase().includes('id');
+                
+                // Parsear las primeras filas para la vista previa
+                const previewLines = lines.slice(0, Math.min(5, lines.length));
+                const parsedLines = previewLines.map(line => parseCSVLine(line, selectedDelimiter));
+                
+                // Mostrar en la tabla de vista previa
+                renderPreview(parsedLines, hasHeader);
+                
             } catch (error) {
-                console.error('Error al procesar el archivo CSV:', error);
-                alert('Error al procesar el archivo CSV: ' + error.message);
+                showError(`Error al analizar el archivo: ${error.message}`);
             }
         }
 
-        // Función mejorada para parsear una línea CSV
-        function parseCSVLine(line) {
+        // Función para renderizar la vista previa
+        function renderPreview(parsedLines, hasHeader) {
+            // Limpiar tabla de vista previa
+            elements.previewHeader.innerHTML = '';
+            elements.previewBody.innerHTML = '';
+            
+            if (parsedLines.length === 0) return;
+            
+            // Determinar el número máximo de columnas
+            const maxColumns = Math.max(...parsedLines.map(line => line.length));
+            
+            // Renderizar encabezados
+            for (let i = 0; i < maxColumns; i++) {
+                const th = document.createElement('th');
+                if (hasHeader) {
+                    th.textContent = parsedLines[0][i] || `Columna ${i + 1}`;
+                } else {
+                    th.textContent = `Columna ${i + 1}`;
+                }
+                elements.previewHeader.appendChild(th);
+            }
+            
+            // Renderizar filas de datos
+            const startIndex = hasHeader ? 1 : 0;
+            for (let i = startIndex; i < parsedLines.length; i++) {
+                const tr = document.createElement('tr');
+                const row = parsedLines[i];
+                
+                for (let j = 0; j < maxColumns; j++) {
+                    const td = document.createElement('td');
+                    td.textContent = row[j] || '';
+                    tr.appendChild(td);
+                }
+                
+                elements.previewBody.appendChild(tr);
+            }
+        }
+
+        // Función para procesar el CSV completo
+        function processCSV() {
+            try {
+                elements.processResult.textContent = 'Procesando...';
+                elements.processResult.className = 'info-text';
+                
+                const text = fileDecoder.decode(rawCSVContent);
+                const lines = text.split(/\r?\n/).filter(line => line.trim());
+                
+                if (lines.length === 0) {
+                    showError('El archivo está vacío.');
+                    return;
+                }
+                
+                // Detectar si hay encabezado
+                const firstLine = lines[0];
+                const hasHeader = firstLine.toLowerCase().includes('pregunta') || 
+                                 firstLine.toLowerCase().includes('enunciado') ||
+                                 firstLine.toLowerCase().includes('id');
+                
+                const startIndex = hasHeader ? 1 : 0;
+                questionsDB = [];
+                
+                // Procesar cada línea
+                for (let i = startIndex; i < lines.length; i++) {
+                    try {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        const parts = parseCSVLine(line, selectedDelimiter);
+                        
+                        if (parts.length >= 6) { // Mínimo: pregunta + 4 opciones + respuesta correcta
+                            let question;
+                            
+                            // Determinar el formato basado en el número de columnas
+                            if (parts.length >= 7) {
+                                // Formato: ID/Pregunta, A, B, C, D, Respuesta, Explicación
+                                question = {
+                                    id: parseInt(parts[0]) || i,
+                                    question: parts[0].trim(),
+                                    options: [
+                                        parts[1].trim(),
+                                        parts[2].trim(),
+                                        parts[3].trim(),
+                                        parts[4].trim()
+                                    ],
+                                    correctAnswer: parseCorrectAnswer(parts[5]),
+                                    reasoning: parts.length >= 7 ? parts[6].trim() : 'Sin explicación disponible',
+                                    category: detectCategory(parts[0]),
+                                    legalReference: parts.length >= 7 ? extractLegalReference(parts[6]) : ''
+                                };
+                            } else {
+                                // Formato mínimo: Pregunta, A, B, C, D, Respuesta
+                                question = {
+                                    id: i,
+                                    question: parts[0].trim(),
+                                    options: [
+                                        parts[1].trim(),
+                                        parts[2].trim(),
+                                        parts[3].trim(),
+                                        parts[4].trim()
+                                    ],
+                                    correctAnswer: parseCorrectAnswer(parts[5]),
+                                    reasoning: 'Sin explicación disponible',
+                                    category: detectCategory(parts[0]),
+                                    legalReference: ''
+                                };
+                            }
+                            
+                            // Validar pregunta
+                            if (isValidQuestion(question)) {
+                                questionsDB.push(question);
+                            }
+                        }
+                    } catch (lineError) {
+                        console.error(`Error en línea ${i}:`, lineError);
+                    }
+                }
+                
+                if (questionsDB.length > 0) {
+                    // Inicializar tracking
+                    initializeTracking();
+                    
+                    elements.processResult.textContent = `¡Éxito! Se han cargado ${questionsDB.length} preguntas.`;
+                    elements.processResult.className = 'success-text';
+                    elements.quizOptionsSection.classList.remove('hidden');
+                } else {
+                    showError('No se pudieron cargar preguntas válidas. Por favor, revise el formato del archivo.');
+                }
+                
+            } catch (error) {
+                showError(`Error al procesar el archivo: ${error.message}`);
+            }
+        }
+
+        // Función para parsear una línea CSV
+        function parseCSVLine(line, delimiter) {
             const result = [];
             let current = '';
             let inQuotes = false;
+            let i = 0;
             
-            for (let i = 0; i < line.length; i++) {
+            // Reemplazar el delimitador \t por un tab real
+            if (delimiter === '\\t') delimiter = '\t';
+            
+            while (i < line.length) {
                 const char = line[i];
-                const nextChar = line[i + 1];
                 
                 if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
+                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
                         // Comillas dobles escapadas dentro de comillas
-                        current += '§§QUOTE§§';
-                        i++; // Saltar la siguiente comilla
+                        current += '"';
+                        i += 2;
                     } else {
                         // Cambiar estado de comillas
                         inQuotes = !inQuotes;
+                        i++;
                     }
-                } else if (char === ',' && !inQuotes) {
-                    // Coma fuera de comillas = separador de campo
+                } else if (char === delimiter && !inQuotes) {
+                    // Delimitador fuera de comillas
                     result.push(current);
                     current = '';
+                    i++;
                 } else {
                     current += char;
+                    i++;
                 }
             }
             
-            // Agregar el último campo
+            // Añadir el último campo
             result.push(current);
             
             return result;
         }
 
-        // Función para detectar la categoría de la pregunta
+        // Función para parsear la respuesta correcta
+        function parseCorrectAnswer(answer) {
+            if (!answer) return 0;
+            
+            answer = answer.toString().trim().toUpperCase();
+            
+            // Si es una letra A, B, C, D
+            if (answer.match(/^[A-D]$/)) {
+                return answer.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+            }
+            
+            // Si es un número 0-3
+            const num = parseInt(answer);
+            if (!isNaN(num) && num >= 0 && num <= 3) {
+                return num;
+            }
+            
+            // Si contiene una letra A, B, C, D en alguna parte
+            const match = answer.match(/[A-D]/);
+            if (match) {
+                return match[0].charCodeAt(0) - 65;
+            }
+            
+            return 0; // Por defecto, la primera opción
+        }
+
+        // Función para validar una pregunta
+        function isValidQuestion(question) {
+            return question.question && 
+                   question.question.length > 3 &&
+                   question.options.length === 4 &&
+                   question.options.every(opt => opt && opt.length > 0) &&
+                   question.correctAnswer >= 0 && 
+                   question.correctAnswer <= 3;
+        }
+
+        // Función para detectar categoría
         function detectCategory(questionText) {
+            if (!questionText) return 'administrativo';
+            
             const text = questionText.toLowerCase();
-            if (text.includes('tribut') || text.includes('fiscal') || text.includes('impuesto') || 
-                text.includes('liquidación') || text.includes('retención') || text.includes('lgt')) {
+            if (text.includes('tribut') || text.includes('fiscal') || 
+                text.includes('impuesto') || text.includes('liquidación') || 
+                text.includes('retención')) {
                 return 'administrativo';
-            } else if (text.includes('civil') || text.includes('propiedad') || text.includes('contrato')) {
+            } else if (text.includes('civil') || text.includes('propiedad') || 
+                      text.includes('contrato') || text.includes('herencia')) {
                 return 'civil';
-            } else if (text.includes('mercantil') || text.includes('sociedad') || text.includes('empresa')) {
+            } else if (text.includes('mercantil') || text.includes('sociedad') || 
+                      text.includes('comerci') || text.includes('empresa')) {
                 return 'mercantil';
             }
-            return 'administrativo'; // default
+            return 'administrativo'; // Categoría por defecto
         }
 
         // Función para extraer referencia legal
         function extractLegalReference(reasoning) {
+            if (!reasoning) return '';
+            
             const matches = reasoning.match(/https?:\/\/[^\s]+/);
             if (matches) {
                 return matches[0];
             }
+            
             const articleMatch = reasoning.match(/artículo\s+(\d+)/i);
             if (articleMatch) {
                 return `https://www.boe.es/buscar/act.php?id=BOE-A-2003-17588#a${articleMatch[1]}`;
             }
-            return 'https://www.boe.es/buscar/act.php?id=BOE-A-2003-17588';
+            
+            return '';
         }
 
-        // Algoritmo mejorado de selección aleatoria
-        function selectRandomQuestionsAdvanced(num, category) {
-            let availableQuestions = questionsDB;
-            
-            if (category !== 'TODO') {
-                availableQuestions = questionsDB.filter(q => q.category === category);
-            }
+        // Función para mostrar error
+        function showError(message) {
+            elements.processResult.textContent = message;
+            elements.processResult.className = 'error-text';
+        }
 
-            // Crear un pool de preguntas elegibles
-            const currentSession = new Date().getTime();
-            const recentlyShownIds = getRecentlyShownQuestions();
-            
-            // Separar preguntas en categorías
-            const neverShown = [];
-            const eligibleForRepeat = [];
-            const recentlyShown = [];
-            
-            availableQuestions.forEach(q => {
-                if (advancedTracking.occurrences[q.id] === 0) {
-                    neverShown.push(q);
-                } else if (recentlyShownIds.includes(q.id)) {
-                    recentlyShown.push(q);
-                } else {
-                    eligibleForRepeat.push(q);
+        // Función para mostrar éxito
+        function showSuccess(message) {
+            elements.processResult.textContent = message;
+            elements.processResult.className = 'success-text';
+        }
+
+        // Funciones de tracking avanzado
+        function loadAdvancedTracking() {
+            try {
+                const saved = localStorage.getItem('advancedQuestionTracking');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.version === TRACKING_VERSION) {
+                        advancedTracking = parsed;
+                    } else {
+                        // Migrar datos antiguos
+                        advancedTracking = {
+                            version: TRACKING_VERSION,
+                            occurrences: parsed.occurrences || {},
+                            sessionHistory: parsed.sessionHistory || [],
+                            lastShown: parsed.lastShown || {},
+                            cooldownPeriod: 3,
+                            maxSessionHistory: 10
+                        };
+                        saveAdvancedTracking();
+                    }
+                }
+            } catch (e) {
+                console.error('Error cargando datos de tracking:', e);
+                initializeTracking();
+            }
+        }
+
+        function initializeTracking() {
+            questionsDB.forEach(q => {
+                if (!advancedTracking.occurrences[q.id]) {
+                    advancedTracking.occurrences[q.id] = 0;
+                }
+                if (!advancedTracking.lastShown[q.id]) {
+                    advancedTracking.lastShown[q.id] = 0;
                 }
             });
-
-            // Construir pool final con prioridades
-            let finalPool = [];
-            
-            // 1. Primero las nunca mostradas
-            finalPool = finalPool.concat(neverShown);
-            
-            // 2. Luego las elegibles, ordenadas por menor frecuencia
-            eligibleForRepeat.sort((a, b) => {
-                const scoreA = calculateQuestionScore(a.id);
-                const scoreB = calculateQuestionScore(b.id);
-                return scoreB - scoreA;
-            });
-            finalPool = finalPool.concat(eligibleForRepeat);
-            
-            // 3. Solo si es necesario, incluir las recientes
-            if (finalPool.length < num) {
-                recentlyShown.sort((a, b) => {
-                    const scoreA = calculateQuestionScore(a.id);
-                    const scoreB = calculateQuestionScore(b.id);
-                    return scoreB - scoreA;
-                });
-                finalPool = finalPool.concat(recentlyShown);
-            }
-
-            // Aplicar aleatorización
-            const selected = [];
-            const poolSize = Math.min(finalPool.length, num * 2);
-            const workingPool = finalPool.slice(0, poolSize);
-            
-            // Aleatorizar el working pool
-            for (let i = workingPool.length - 1; i > 0; i--) {
-                const maxIndex = Math.min(i + 1, Math.floor(i * 1.5));
-                const j = Math.floor(Math.random() * maxIndex);
-                [workingPool[i], workingPool[j]] = [workingPool[j], workingPool[i]];
-            }
-            
-            // Seleccionar las preguntas finales
-            for (let i = 0; i < Math.min(num, workingPool.length); i++) {
-                selected.push(workingPool[i]);
-            }
-
-            // Registrar esta sesión
-            const sessionQuestions = selected.map(q => q.id);
-            registerNewSession(sessionQuestions);
-
-            return selected;
+            saveAdvancedTracking();
         }
 
-        // Calcular score de prioridad para una pregunta
-        function calculateQuestionScore(questionId) {
-            const occurrences = advancedTracking.occurrences[questionId] || 0;
-            const lastShown = advancedTracking.lastShown[questionId] || 0;
-            const currentTime = new Date().getTime();
-            const timeSinceLastShown = currentTime - lastShown;
-            
-            const occurrenceScore = 1 / (occurrences + 1);
-            const timeScore = timeSinceLastShown / (1000 * 60 * 60 * 24);
-            
-            return occurrenceScore * 100 + timeScore;
+        function saveAdvancedTracking() {
+            localStorage.setItem('advancedQuestionTracking', JSON.stringify(advancedTracking));
         }
 
-        // Obtener preguntas mostradas recientemente
         function getRecentlyShownQuestions() {
             const recentQuestions = new Set();
             const sessionsToCheck = Math.min(advancedTracking.cooldownPeriod, advancedTracking.sessionHistory.length);
@@ -785,7 +1020,21 @@
             return Array.from(recentQuestions);
         }
 
-        // Registrar nueva sesión
+        function calculateQuestionScore(questionId) {
+            const occurrences = advancedTracking.occurrences[questionId] || 0;
+            const lastShown = advancedTracking.lastShown[questionId] || 0;
+            const currentTime = new Date().getTime();
+            const timeSinceLastShown = currentTime - lastShown;
+            
+            // Factor de ocurrencias (menos veces mostrado = mayor prioridad)
+            const occurrenceScore = 1 / (occurrences + 1);
+            
+            // Factor de tiempo (más tiempo sin mostrar = mayor prioridad)
+            const timeScore = timeSinceLastShown / (1000 * 60 * 60 * 24); // Días desde última vez
+            
+            return occurrenceScore * 100 + timeScore;
+        }
+
         function registerNewSession(questionIds) {
             const session = {
                 timestamp: new Date().getTime(),
@@ -802,7 +1051,6 @@
             saveAdvancedTracking();
         }
 
-        // Función para reiniciar todos los datos
         function resetAllData() {
             if (confirm('¿Estás seguro de que quieres reiniciar todo el historial de preguntas? Esta acción no se puede deshacer.')) {
                 advancedTracking = {
@@ -814,48 +1062,71 @@
                     maxSessionHistory: 10
                 };
                 initializeTracking();
-                saveAdvancedTracking();
-                alert('Historial de preguntas reiniciado correctamente.');
+                showSuccess('Historial de preguntas reiniciado correctamente.');
             }
         }
 
-        // Función para generar opciones incorrectas
-        function generateIncorrectOptions(correctOption, question) {
-            const incorrectOptions = [];
-            const usedOptions = new Set([correctOption]);
+        // Función para seleccionar preguntas aleatorias
+        function selectRandomQuestions(num, category) {
+            let availableQuestions = questionsDB;
             
-            // Usar las opciones del CSV que no son la correcta
-            for (let i = 0; i < question.options.length; i++) {
-                if (i !== question.correctAnswer && !usedOptions.has(question.options[i])) {
-                    incorrectOptions.push(question.options[i]);
-                    usedOptions.add(question.options[i]);
+            if (category !== 'TODO') {
+                availableQuestions = questionsDB.filter(q => q.category === category);
+            }
+            
+            if (availableQuestions.length === 0) {
+                return [];
+            }
+
+            // Obtener IDs de preguntas mostradas recientemente
+            const recentlyShownIds = getRecentlyShownQuestions();
+            
+            // Separar en categorías según historial
+            const neverShown = [];
+            const eligibleForRepeat = [];
+            const recentlyShown = [];
+            
+            availableQuestions.forEach(q => {
+                if (advancedTracking.occurrences[q.id] === 0) {
+                    neverShown.push(q);
+                } else if (recentlyShownIds.includes(q.id)) {
+                    recentlyShown.push(q);
+                } else {
+                    eligibleForRepeat.push(q);
                 }
-            }
+            });
+
+            // Construir pool final priorizando nuevas preguntas
+            let finalPool = [];
             
-            // Si necesitamos más opciones (aunque no debería pasar con el formato actual)
-            while (incorrectOptions.length < 3) {
-                const variation = createManualVariation(correctOption, question);
-                if (variation && !usedOptions.has(variation)) {
-                    incorrectOptions.push(variation);
-                    usedOptions.add(variation);
-                }
-            }
+            // 1. Primero las nunca mostradas (mezcladas)
+            finalPool = finalPool.concat(shuffleArray(neverShown));
             
-            return incorrectOptions.slice(0, 3);
+            // 2. Luego las elegibles, ordenadas por prioridad
+            eligibleForRepeat.sort((a, b) => {
+                return calculateQuestionScore(b.id) - calculateQuestionScore(a.id);
+            });
+            finalPool = finalPool.concat(eligibleForRepeat);
+            
+            // 3. Solo si es necesario, incluir las recientes
+            if (finalPool.length < num) {
+                recentlyShown.sort((a, b) => {
+                    return calculateQuestionScore(b.id) - calculateQuestionScore(a.id);
+                });
+                finalPool = finalPool.concat(recentlyShown);
+            }
+
+            // Elegir preguntas y mezclarlas
+            const selected = finalPool.slice(0, Math.min(num, finalPool.length));
+            const shuffled = shuffleArray(selected);
+            
+            // Registrar la sesión
+            registerNewSession(shuffled.map(q => q.id));
+            
+            return shuffled;
         }
 
-        // Función para crear variaciones manuales
-        function createManualVariation(correctOption, question) {
-            const variations = [
-                'Ninguna de las anteriores es correcta',
-                'Todas las anteriores son correctas',
-                'Solo a) y b) son correctas',
-                'Solo b) y c) son correctas'
-            ];
-            return variations[Math.floor(Math.random() * variations.length)];
-        }
-
-        // Función para mezclar array (Fisher-Yates)
+        // Función para mezclar array
         function shuffleArray(array) {
             const newArray = [...array];
             for (let i = newArray.length - 1; i > 0; i--) {
@@ -865,108 +1136,86 @@
             return newArray;
         }
 
-        // Función para iniciar el quiz
+        // Función para iniciar quiz
         function startQuiz() {
-            if (questionsDB.length === 0) {
-                alert('Por favor, carga primero el archivo CSV con las preguntas.');
-                return;
-            }
-
             const numQuestions = parseInt(document.getElementById('numQuestions').value);
             const category = document.getElementById('category').value;
-
-            // Cargar tracking avanzado
-            loadAdvancedTracking();
-
-            // Seleccionar preguntas con algoritmo mejorado
-            const selectedQuestions = selectRandomQuestionsAdvanced(numQuestions, category);
+            
+            // Seleccionar preguntas
+            const selectedQuestions = selectRandomQuestions(numQuestions, category);
             
             if (selectedQuestions.length === 0) {
                 alert('No hay preguntas disponibles para la categoría seleccionada.');
                 return;
             }
-
-            // Preparar las preguntas
-            currentQuiz.questions = selectedQuestions.map(q => {
-                // Usar directamente las opciones del CSV
-                return {
-                    ...q,
-                    shuffledOptions: [...q.options],
-                    shuffledCorrectIndex: q.correctAnswer
-                };
-            });
-
-            // Resetear el quiz
+            
+            // Preparar quiz
+            currentQuiz.questions = selectedQuestions;
             currentQuiz.currentIndex = 0;
             currentQuiz.correctAnswers = 0;
             currentQuiz.incorrectAnswers = 0;
             currentQuiz.reviewItems = [];
             currentQuiz.startTime = new Date();
-
-            // Mostrar sección del quiz
-            document.getElementById('configSection').style.display = 'none';
-            document.getElementById('quizSection').style.display = 'block';
-            document.getElementById('resultsSection').style.display = 'none';
-
+            
+            // Cambiar vista
+            elements.configSection.style.display = 'none';
+            elements.quizSection.style.display = 'block';
+            elements.resultsSection.style.display = 'none';
+            
             // Mostrar primera pregunta
             showQuestion();
         }
 
-        // Función para mostrar la pregunta actual
+        // Función para mostrar pregunta actual
         function showQuestion() {
             const question = currentQuiz.questions[currentQuiz.currentIndex];
             
-            // Incrementar contador de ocurrencias
+            // Incrementar contador y actualizar tiempo
             advancedTracking.occurrences[question.id] = (advancedTracking.occurrences[question.id] || 0) + 1;
             advancedTracking.lastShown[question.id] = new Date().getTime();
             saveAdvancedTracking();
-
+            
             // Actualizar progreso
             const progress = ((currentQuiz.currentIndex + 1) / currentQuiz.questions.length) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-
+            elements.progressFill.style.width = `${progress}%`;
+            
             // Actualizar contador
-            document.getElementById('questionCounter').textContent = 
-                `Pregunta ${currentQuiz.currentIndex + 1} de ${currentQuiz.questions.length}`;
-
-            // Mostrar pregunta
-            document.getElementById('questionText').textContent = question.question;
-
+            elements.questionCounter.textContent = `Pregunta ${currentQuiz.currentIndex + 1} de ${currentQuiz.questions.length}`;
+            
+            // Mostrar texto de pregunta
+            elements.questionText.textContent = question.question;
+            
             // Mostrar opciones
-            const optionsContainer = document.getElementById('optionsContainer');
-            optionsContainer.innerHTML = '';
-
-            question.shuffledOptions.forEach((option, index) => {
+            elements.optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
                 const button = document.createElement('button');
                 button.className = 'option-button';
                 button.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
                 button.onclick = () => selectOption(index);
-                optionsContainer.appendChild(button);
+                elements.optionsContainer.appendChild(button);
             });
-
-            // Ocultar feedback y botón siguiente
-            document.getElementById('feedback').style.display = 'none';
-            document.getElementById('motivationalMessage').textContent = '';
-            document.getElementById('nextButton').style.display = 'none';
+            
+            // Restablecer elementos
+            elements.feedback.style.display = 'none';
+            elements.motivationalMessage.textContent = '';
+            elements.nextButton.classList.add('hidden');
         }
 
-        // Función para seleccionar una opción
+        // Función para seleccionar opción
         function selectOption(selectedIndex) {
             const question = currentQuiz.questions[currentQuiz.currentIndex];
-            const isCorrect = selectedIndex === question.shuffledCorrectIndex;
-
-            // Deshabilitar todos los botones
+            const isCorrect = selectedIndex === question.correctAnswer;
+            
+            // Deshabilitar botones
             const buttons = document.querySelectorAll('.option-button');
             buttons.forEach(button => button.disabled = true);
-
-            // Marcar respuesta seleccionada
+            
+            // Marcar respuestas
             buttons[selectedIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
-
-            // Mostrar respuesta correcta si se equivocó
             if (!isCorrect) {
-                buttons[question.shuffledCorrectIndex].classList.add('correct');
+                buttons[question.correctAnswer].classList.add('correct');
             }
-
+            
             // Actualizar estadísticas
             if (isCorrect) {
                 currentQuiz.correctAnswers++;
@@ -974,45 +1223,40 @@
                 currentQuiz.incorrectAnswers++;
                 currentQuiz.reviewItems.push({
                     question: question.question,
-                    correctAnswer: question.shuffledOptions[question.shuffledCorrectIndex],
+                    correctAnswer: question.options[question.correctAnswer],
                     reasoning: question.reasoning
                 });
             }
-
+            
             // Mostrar feedback
-            const feedback = document.getElementById('feedback');
-            feedback.className = 'feedback ' + (isCorrect ? 'success' : 'error');
+            elements.feedback.className = `feedback ${isCorrect ? 'success' : 'error'}`;
             
-            let feedbackHTML = '';
-            if (isCorrect) {
-                feedbackHTML = '✅ ¡Correcto! ';
-            } else {
-                feedbackHTML = `❌ Incorrecto. La respuesta correcta es: ${question.shuffledOptions[question.shuffledCorrectIndex]}. `;
-            }
+            let feedbackText = isCorrect ? 
+                '✅ ¡Correcto! ' : 
+                `❌ Incorrecto. La respuesta correcta es: ${question.options[question.correctAnswer]}. `;
             
-            feedbackHTML += question.reasoning;
+            feedbackText += question.reasoning;
             
             if (question.legalReference) {
-                feedbackHTML += ` <a href="${question.legalReference}" target="_blank">Ver legislación aplicable</a>`;
+                feedbackText += ` <a href="${question.legalReference}" target="_blank">Ver legislación</a>`;
             }
             
-            feedback.innerHTML = feedbackHTML;
-            feedback.style.display = 'block';
-
+            elements.feedback.innerHTML = feedbackText;
+            elements.feedback.style.display = 'block';
+            
             // Mostrar mensaje motivacional
             const phrases = isCorrect ? motivationalPhrases.correct : motivationalPhrases.incorrect;
-            document.getElementById('motivationalMessage').textContent = 
-                phrases[Math.floor(Math.random() * phrases.length)];
-
+            elements.motivationalMessage.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+            
             // Mostrar botón siguiente o resultados
             if (currentQuiz.currentIndex < currentQuiz.questions.length - 1) {
-                document.getElementById('nextButton').style.display = 'block';
+                elements.nextButton.classList.remove('hidden');
             } else {
                 setTimeout(showResults, 2000);
             }
         }
 
-        // Función para pasar a la siguiente pregunta
+        // Función para ir a la siguiente pregunta
         function nextQuestion() {
             currentQuiz.currentIndex++;
             showQuestion();
@@ -1021,23 +1265,24 @@
         // Función para mostrar resultados
         function showResults() {
             currentQuiz.endTime = new Date();
-
-            // Ocultar quiz y mostrar resultados
-            document.getElementById('quizSection').style.display = 'none';
-            document.getElementById('resultsSection').style.display = 'block';
-
+            
+            // Cambiar vista
+            elements.configSection.style.display = 'none';
+            elements.quizSection.style.display = 'none';
+            elements.resultsSection.style.display = 'block';
+            
             // Calcular estadísticas
             const total = currentQuiz.questions.length;
             const percentage = Math.round((currentQuiz.correctAnswers / total) * 100);
-
-            document.getElementById('correctCount').textContent = currentQuiz.correctAnswers;
-            document.getElementById('incorrectCount').textContent = currentQuiz.incorrectAnswers;
-            document.getElementById('scorePercentage').textContent = percentage + '%';
-
+            
+            // Actualizar estadísticas
+            elements.correctCount.textContent = currentQuiz.correctAnswers;
+            elements.incorrectCount.textContent = currentQuiz.incorrectAnswers;
+            elements.scorePercentage.textContent = `${percentage}%`;
+            
             // Mostrar temas a repasar
-            const reviewItemsDiv = document.getElementById('reviewItems');
-            reviewItemsDiv.innerHTML = '';
-
+            elements.reviewItems.innerHTML = '';
+            
             if (currentQuiz.reviewItems.length > 0) {
                 currentQuiz.reviewItems.forEach((item, index) => {
                     const div = document.createElement('div');
@@ -1045,66 +1290,39 @@
                     div.innerHTML = `
                         <strong>${index + 1}. ${item.question}</strong><br>
                         <span style="color: var(--success)">Respuesta correcta:</span> ${item.correctAnswer}<br>
-                        <span style="color: var(--text-secondary)">${item.reasoning}</span>
+                        <span style="color: var(--text-secondary)">${item.reasoning || 'Sin explicación disponible'}</span>
                     `;
-                    reviewItemsDiv.appendChild(div);
+                    elements.reviewItems.appendChild(div);
                 });
             } else {
-                reviewItemsDiv.innerHTML = '<p style="text-align: center; color: var(--success)">¡Perfecto! No hay temas que repasar.</p>';
+                elements.reviewItems.innerHTML = '<p style="text-align: center; color: var(--success)">¡Perfecto! No hay temas que repasar.</p>';
             }
-
+            
             // Mostrar tabla de ocurrencias
-            const tableBody = document.getElementById('occurrenceTableBody');
-            tableBody.innerHTML = '';
-
+            elements.occurrenceTableBody.innerHTML = '';
+            
             const sortedQuestions = [...questionsDB].sort((a, b) => a.id - b.id);
-
             sortedQuestions.forEach(q => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${q.id}</td>
-                    <td>${q.question.substring(0, 50)}...</td>
+                    <td>${q.question.substring(0, 50)}${q.question.length > 50 ? '...' : ''}</td>
                     <td>${advancedTracking.occurrences[q.id] || 0}</td>
                 `;
-                tableBody.appendChild(tr);
+                elements.occurrenceTableBody.appendChild(tr);
             });
-
-            // Mensaje final motivacional
+            
+            // Mensaje motivacional final
             const finalMessage = motivationalPhrases.final[Math.floor(Math.random() * motivationalPhrases.final.length)];
-            document.getElementById('finalMessage').textContent = finalMessage;
+            elements.finalMessage.textContent = finalMessage;
         }
 
-        // Función para reiniciar el quiz
+        // Función para reiniciar quiz
         function resetQuiz() {
-            document.getElementById('configSection').style.display = 'block';
-            document.getElementById('quizSection').style.display = 'none';
-            document.getElementById('resultsSection').style.display = 'none';
+            elements.configSection.style.display = 'block';
+            elements.quizSection.style.display = 'none';
+            elements.resultsSection.style.display = 'none';
         }
-
-        // Inicializar al cargar la página
-        window.onload = function() {
-            loadAdvancedTracking();
-            
-            // Intentar cargar archivos CSV automáticamente
-            const possibleFiles = ['PreguntasFlash.csv', 'TEST_JC.csv'];
-            
-            possibleFiles.forEach(filename => {
-                fetch(filename)
-                    .then(response => {
-                        if (response.ok) {
-                            return response.text();
-                        }
-                        throw new Error('File not found');
-                    })
-                    .then(data => {
-                        console.log(`Archivo ${filename} encontrado, cargando...`);
-                        parseCSV(data);
-                    })
-                    .catch(error => {
-                        console.log(`No se encontró ${filename}`);
-                    });
-            });
-        };
     </script>
 </body>
 </html>
