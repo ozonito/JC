@@ -75,7 +75,7 @@
             font-weight: 500;
         }
 
-        select, button, input[type="file"], input[type="text"] {
+        select, button, input[type="file"], textarea {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -85,6 +85,12 @@
             font-size: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+            resize: vertical;
         }
 
         select:hover, button:hover {
@@ -110,12 +116,38 @@
             transform: none;
         }
 
+        .debug-section {
+            background-color: rgba(15, 23, 42, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid var(--border);
+        }
+
+        .debug-title {
+            color: var(--warning);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .debug-content {
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            color: var(--text-secondary);
+        }
+
         .success-button {
             background-color: var(--success);
         }
 
         .warning-button {
             background-color: var(--warning);
+        }
+
+        .error-button {
+            background-color: var(--error);
         }
 
         .hidden {
@@ -144,28 +176,12 @@
             margin: 10px 0;
         }
 
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
+        .format-info {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-left: 4px solid #4f46e5;
+            padding: 12px;
             margin: 15px 0;
-            background-color: var(--bg-secondary);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .preview-table th, .preview-table td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 150px;
-        }
-
-        .preview-table th {
-            background-color: var(--bg-card);
-            color: var(--accent);
+            font-size: 0.9em;
         }
 
         .delimiter-options {
@@ -192,6 +208,18 @@
         .delimiter-option.active {
             background-color: rgba(233, 69, 96, 0.3);
             font-weight: bold;
+        }
+
+        .manual-input-section textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
 
         /* Estilos para la sección de quiz */
@@ -359,6 +387,28 @@
             background-color: rgba(233, 69, 96, 0.1);
         }
 
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab:hover {
+            color: var(--accent);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 15px;
@@ -371,6 +421,10 @@
             .question-text {
                 font-size: 1.1em;
             }
+
+            .tabs {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -380,16 +434,27 @@
         
         <!-- Sección de configuración inicial y carga de CSV -->
         <div id="configSection" class="section">
-            <h2>Cargar archivo CSV</h2>
+            <h2>Cargar Preguntas</h2>
             
-            <div class="form-group">
-                <label for="csvFile">Seleccionar archivo CSV:</label>
-                <input type="file" id="csvFile" accept=".csv" />
-                <div id="fileInfo" class="info-text">Seleccione un archivo CSV con las preguntas para el quiz</div>
+            <div class="tabs">
+                <div class="tab active" data-tab="file-tab">Archivo CSV</div>
+                <div class="tab" data-tab="text-tab">Entrada Manual</div>
             </div>
             
-            <div id="csvOptionsSection" class="hidden">
-                <h3>Opciones de importación</h3>
+            <div id="file-tab" class="tab-content">
+                <div class="form-group">
+                    <label for="csvFile">Seleccionar archivo CSV:</label>
+                    <input type="file" id="csvFile" accept=".csv" />
+                    <div id="fileInfo" class="info-text">Seleccione un archivo CSV con las preguntas para el quiz</div>
+                </div>
+
+                <div class="format-info">
+                    <p><strong>Formato esperado del CSV:</strong></p>
+                    <p>El archivo debe tener una de las siguientes estructuras:</p>
+                    <p>1. Pregunta,Opción A,Opción B,Opción C,Opción D,Respuesta Correcta,Explicación</p>
+                    <p>2. ID,Pregunta,Opción A,Opción B,Opción C,Opción D,Respuesta Correcta,Explicación</p>
+                    <p>La respuesta correcta puede ser: A, B, C, D o 0, 1, 2, 3</p>
+                </div>
                 
                 <div class="form-group">
                     <label>Seleccione el delimitador:</label>
@@ -408,25 +473,29 @@
                         <option value="windows-1252">Windows-1252</option>
                     </select>
                 </div>
-                
+            </div>
+            
+            <div id="text-tab" class="tab-content hidden">
                 <div class="form-group">
-                    <label>Vista previa:</label>
-                    <div class="preview-container">
-                        <table class="preview-table" id="previewTable">
-                            <thead>
-                                <tr id="previewHeader"></tr>
-                            </thead>
-                            <tbody id="previewBody"></tbody>
-                        </table>
-                    </div>
+                    <label for="manualInput">Pegue sus preguntas en formato CSV:</label>
+                    <textarea id="manualInput" placeholder="Pregunta,Opción A,Opción B,Opción C,Opción D,Respuesta Correcta,Explicación"></textarea>
+                    <div class="info-text">Asegúrese de usar el mismo formato que se indica arriba</div>
                 </div>
-                
-                <button id="processCSVButton" class="success-button">Procesar archivo CSV</button>
+            </div>
+            
+            <div class="form-group">
+                <button id="analyzeButton" class="warning-button">🔍 Analizar Datos</button>
+                <button id="processCSVButton" class="success-button" disabled>✅ Procesar Preguntas</button>
                 <div id="processResult" class="info-text"></div>
             </div>
             
+            <div id="debugSection" class="debug-section hidden">
+                <div class="debug-title">Diagnóstico de Datos:</div>
+                <div id="debugContent" class="debug-content"></div>
+            </div>
+            
             <div id="quizOptionsSection" class="hidden">
-                <h3>Configurar quiz</h3>
+                <h3>Configurar Quiz</h3>
                 
                 <div class="form-group">
                     <label for="numQuestions">Número de preguntas:</label>
@@ -522,9 +591,10 @@
         // Variables globales
         let questionsDB = [];
         let rawCSVContent = '';
+        let csvText = '';
         let selectedDelimiter = ',';
         let selectedEncoding = 'utf-8';
-        let fileDecoder = new TextDecoder(selectedEncoding);
+        let activeTab = 'file-tab';
         
         // Sistema de tracking
         const TRACKING_VERSION = '3.0';
@@ -573,37 +643,53 @@
             ]
         };
 
-        // Referencias a elementos DOM frecuentemente utilizados
+        // Referencias a elementos DOM
         const elements = {
+            // Tabs
+            tabs: document.querySelectorAll('.tab'),
+            fileTab: document.getElementById('file-tab'),
+            textTab: document.getElementById('text-tab'),
+            
+            // Inputs
             csvFile: document.getElementById('csvFile'),
-            fileInfo: document.getElementById('fileInfo'),
-            csvOptionsSection: document.getElementById('csvOptionsSection'),
-            quizOptionsSection: document.getElementById('quizOptionsSection'),
-            processCSVButton: document.getElementById('processCSVButton'),
-            processResult: document.getElementById('processResult'),
+            manualInput: document.getElementById('manualInput'),
             encodingSelect: document.getElementById('encodingSelect'),
-            previewTable: document.getElementById('previewTable'),
-            previewHeader: document.getElementById('previewHeader'),
-            previewBody: document.getElementById('previewBody'),
+            
+            // Information displays
+            fileInfo: document.getElementById('fileInfo'),
+            processResult: document.getElementById('processResult'),
+            debugSection: document.getElementById('debugSection'),
+            debugContent: document.getElementById('debugContent'),
+            
+            // Buttons
+            analyzeButton: document.getElementById('analyzeButton'),
+            processCSVButton: document.getElementById('processCSVButton'),
             startQuizButton: document.getElementById('startQuizButton'),
             resetDataButton: document.getElementById('resetDataButton'),
+            nextButton: document.getElementById('nextButton'),
+            newQuizButton: document.getElementById('newQuizButton'),
+            
+            // Sections
+            quizOptionsSection: document.getElementById('quizOptionsSection'),
             configSection: document.getElementById('configSection'),
             quizSection: document.getElementById('quizSection'),
             resultsSection: document.getElementById('resultsSection'),
+            
+            // Quiz elements
             questionCounter: document.getElementById('questionCounter'),
             questionText: document.getElementById('questionText'),
             optionsContainer: document.getElementById('optionsContainer'),
             feedback: document.getElementById('feedback'),
             motivationalMessage: document.getElementById('motivationalMessage'),
-            nextButton: document.getElementById('nextButton'),
+            progressFill: document.getElementById('progressFill'),
+            
+            // Results elements
             correctCount: document.getElementById('correctCount'),
             incorrectCount: document.getElementById('incorrectCount'),
             scorePercentage: document.getElementById('scorePercentage'),
             reviewItems: document.getElementById('reviewItems'),
             occurrenceTableBody: document.getElementById('occurrenceTableBody'),
-            finalMessage: document.getElementById('finalMessage'),
-            newQuizButton: document.getElementById('newQuizButton'),
-            progressFill: document.getElementById('progressFill')
+            finalMessage: document.getElementById('finalMessage')
         };
 
         // Event listeners
@@ -611,15 +697,30 @@
             // Cargar datos de tracking
             loadAdvancedTracking();
             
+            // Tab switching
+            elements.tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.dataset.tab;
+                    switchTab(tabId);
+                });
+            });
+            
             // Listener para selección de archivo CSV
             elements.csvFile.addEventListener('change', handleFileSelection);
             
             // Listener para cambio de codificación
             elements.encodingSelect.addEventListener('change', function() {
                 selectedEncoding = this.value;
-                fileDecoder = new TextDecoder(selectedEncoding);
                 if (rawCSVContent) {
-                    parseCSVPreview();
+                    try {
+                        const decoder = new TextDecoder(selectedEncoding);
+                        csvText = decoder.decode(rawCSVContent);
+                        elements.fileInfo.textContent = 'Archivo cargado. Haga clic en "Analizar Datos" para continuar.';
+                        elements.fileInfo.className = 'info-text';
+                        elements.analyzeButton.disabled = false;
+                    } catch (error) {
+                        showError(`Error al decodificar el archivo: ${error.message}`);
+                    }
                 }
             });
             
@@ -629,13 +730,13 @@
                     document.querySelectorAll('.delimiter-option').forEach(opt => opt.classList.remove('active'));
                     this.classList.add('active');
                     selectedDelimiter = this.dataset.delimiter;
-                    if (rawCSVContent) {
-                        parseCSVPreview();
-                    }
                 });
             });
             
-            // Listener para procesar CSV
+            // Listener para análisis de datos
+            elements.analyzeButton.addEventListener('click', analyzeData);
+            
+            // Listener para procesar datos
             elements.processCSVButton.addEventListener('click', processCSV);
             
             // Listener para iniciar quiz
@@ -649,7 +750,43 @@
             
             // Listener para nuevo quiz
             elements.newQuizButton.addEventListener('click', resetQuiz);
+            
+            // Listener para entrada manual
+            elements.manualInput.addEventListener('input', function() {
+                if (this.value.trim().length > 0) {
+                    csvText = this.value;
+                    elements.analyzeButton.disabled = false;
+                } else {
+                    elements.analyzeButton.disabled = true;
+                }
+            });
         });
+
+        // Función para cambiar entre pestañas
+        function switchTab(tabId) {
+            // Actualizar pestañas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.tab === tabId) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Actualizar contenido
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            activeTab = tabId;
+            
+            // Resetear algunos estados
+            elements.analyzeButton.disabled = (tabId === 'file-tab' && !rawCSVContent) || 
+                                             (tabId === 'text-tab' && !elements.manualInput.value.trim());
+            elements.processCSVButton.disabled = true;
+            elements.processResult.textContent = '';
+            elements.debugSection.classList.add('hidden');
+        }
 
         // Función para manejar la selección de archivo
         function handleFileSelection(event) {
@@ -658,15 +795,18 @@
             
             elements.fileInfo.textContent = `Archivo seleccionado: ${file.name}`;
             elements.fileInfo.className = 'info-text';
+            elements.processCSVButton.disabled = true;
+            elements.debugSection.classList.add('hidden');
             
             // Leer el archivo como ArrayBuffer para manejar correctamente la codificación
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const arrayBuffer = e.target.result;
-                    rawCSVContent = new Uint8Array(arrayBuffer);
-                    parseCSVPreview();
-                    elements.csvOptionsSection.classList.remove('hidden');
+                    rawCSVContent = new Uint8Array(e.target.result);
+                    const decoder = new TextDecoder(selectedEncoding);
+                    csvText = decoder.decode(rawCSVContent);
+                    elements.fileInfo.textContent = 'Archivo cargado. Haga clic en "Analizar Datos" para continuar.';
+                    elements.analyzeButton.disabled = false;
                 } catch (error) {
                     showError(`Error al leer el archivo: ${error.message}`);
                 }
@@ -677,70 +817,127 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Función para mostrar una vista previa del CSV
-        function parseCSVPreview() {
+        // Función para analizar los datos CSV
+        function analyzeData() {
+            elements.debugSection.classList.remove('hidden');
+            elements.debugContent.textContent = "Analizando datos...";
+            
             try {
-                const text = fileDecoder.decode(rawCSVContent);
-                const lines = text.split(/\r?\n/).filter(line => line.trim());
+                // Obtener el texto CSV dependiendo de la pestaña activa
+                let text = csvText;
+                if (activeTab === 'text-tab') {
+                    text = elements.manualInput.value;
+                }
                 
-                if (lines.length === 0) {
-                    showError('El archivo está vacío.');
+                if (!text || text.trim().length === 0) {
+                    elements.debugContent.textContent = "Error: No hay datos para analizar.";
                     return;
                 }
                 
-                // Intentar detectar si hay encabezado
+                // Limpiar el texto
+                text = text.trim();
+                
+                // Reemplazar diferentes tipos de saltos de línea
+                text = text.replace(/\r\n/g, '\n');
+                text = text.replace(/\r/g, '\n');
+                
+                // Dividir por líneas
+                let lines = text.split('\n');
+                lines = lines.filter(line => line.trim().length > 0);
+                
+                if (lines.length === 0) {
+                    elements.debugContent.textContent = "Error: No se encontraron líneas válidas en el texto.";
+                    return;
+                }
+                
+                // Analizar primera línea para detectar estructura
                 const firstLine = lines[0];
-                const hasHeader = firstLine.toLowerCase().includes('pregunta') || 
-                                 firstLine.toLowerCase().includes('enunciado') ||
-                                 firstLine.toLowerCase().includes('id');
+                const rawDelimiter = selectedDelimiter === '\\t' ? '\t' : selectedDelimiter;
+                const firstLineParts = parseCSVLine(firstLine, rawDelimiter);
                 
-                // Parsear las primeras filas para la vista previa
-                const previewLines = lines.slice(0, Math.min(5, lines.length));
-                const parsedLines = previewLines.map(line => parseCSVLine(line, selectedDelimiter));
+                let columnCount = firstLineParts.length;
+                let hasHeader = detectHeader(firstLine);
+                let format = detectFormat(firstLineParts);
                 
-                // Mostrar en la tabla de vista previa
-                renderPreview(parsedLines, hasHeader);
+                // Analizar algunas líneas más para verificar consistencia
+                let lineAnalysis = [];
+                for (let i = 0; i < Math.min(5, lines.length); i++) {
+                    const line = lines[i];
+                    const parts = parseCSVLine(line, rawDelimiter);
+                    lineAnalysis.push({
+                        index: i,
+                        columns: parts.length,
+                        content: parts.map(p => p.length > 20 ? p.substring(0, 20) + '...' : p)
+                    });
+                }
+                
+                // Determinar el número de columnas esperado
+                let expectedColumns = format === 'unknown' ? 7 : format === 'with_id' ? 8 : 7;
+                
+                // Mostrar análisis
+                let debugText = `Análisis de datos CSV:\n\n`;
+                debugText += `- Total de líneas: ${lines.length}\n`;
+                debugText += `- Delimitador utilizado: "${rawDelimiter === '\t' ? 'Tab' : rawDelimiter}"\n`;
+                debugText += `- Formato detectado: ${format}\n`;
+                debugText += `- Encabezado detectado: ${hasHeader ? 'Sí' : 'No'}\n`;
+                debugText += `- Columnas en primera línea: ${columnCount}\n`;
+                debugText += `- Columnas esperadas: ${expectedColumns}\n\n`;
+                
+                debugText += `Análisis de primeras líneas:\n`;
+                lineAnalysis.forEach(line => {
+                    debugText += `Línea ${line.index + 1}: ${line.columns} columnas\n`;
+                    if (line.columns !== expectedColumns) {
+                        debugText += `  ⚠️ Esta línea tiene un número diferente de columnas (${line.columns} vs ${expectedColumns})\n`;
+                    }
+                    debugText += `  Contenido: ${JSON.stringify(line.content)}\n`;
+                });
+                
+                elements.debugContent.textContent = debugText;
+                
+                // Verificar si hay problemas graves
+                let hasErrors = false;
+                let allDifferentColumns = lineAnalysis.some(line => line.columns !== expectedColumns);
+                
+                if (allDifferentColumns) {
+                    elements.processResult.textContent = "⚠️ Advertencia: Algunas líneas tienen un número incorrecto de columnas. Revise el análisis.";
+                    elements.processResult.className = 'error-text';
+                } else {
+                    elements.processResult.textContent = "✅ Datos analizados correctamente. Puede procesar el archivo para iniciar el quiz.";
+                    elements.processResult.className = 'success-text';
+                }
+                
+                // Habilitar botón de procesamiento
+                elements.processCSVButton.disabled = false;
                 
             } catch (error) {
-                showError(`Error al analizar el archivo: ${error.message}`);
+                elements.debugContent.textContent = `Error durante el análisis: ${error.message}\n\n${error.stack}`;
+                showError(`Error al analizar los datos: ${error.message}`);
             }
         }
 
-        // Función para renderizar la vista previa
-        function renderPreview(parsedLines, hasHeader) {
-            // Limpiar tabla de vista previa
-            elements.previewHeader.innerHTML = '';
-            elements.previewBody.innerHTML = '';
+        // Función para detectar si hay encabezado
+        function detectHeader(line) {
+            const lowercaseLine = line.toLowerCase();
+            return lowercaseLine.includes('pregunta') || 
+                  lowercaseLine.includes('enunciado') ||
+                  lowercaseLine.includes('question') ||
+                  lowercaseLine.includes('opcion');
+        }
+
+        // Función para detectar el formato del CSV
+        function detectFormat(parts) {
+            if (parts.length === 0) return 'unknown';
             
-            if (parsedLines.length === 0) return;
+            // Verificar si la primera columna parece un ID numérico
+            const firstCol = parts[0].trim();
+            const isNumeric = !isNaN(firstCol) && firstCol !== '';
             
-            // Determinar el número máximo de columnas
-            const maxColumns = Math.max(...parsedLines.map(line => line.length));
-            
-            // Renderizar encabezados
-            for (let i = 0; i < maxColumns; i++) {
-                const th = document.createElement('th');
-                if (hasHeader) {
-                    th.textContent = parsedLines[0][i] || `Columna ${i + 1}`;
-                } else {
-                    th.textContent = `Columna ${i + 1}`;
-                }
-                elements.previewHeader.appendChild(th);
-            }
-            
-            // Renderizar filas de datos
-            const startIndex = hasHeader ? 1 : 0;
-            for (let i = startIndex; i < parsedLines.length; i++) {
-                const tr = document.createElement('tr');
-                const row = parsedLines[i];
-                
-                for (let j = 0; j < maxColumns; j++) {
-                    const td = document.createElement('td');
-                    td.textContent = row[j] || '';
-                    tr.appendChild(td);
-                }
-                
-                elements.previewBody.appendChild(tr);
+            if (isNumeric && parts.length >= 8) {
+                return 'with_id';
+            } else if (parts.length >= 7) {
+                return 'without_id';
+            } else {
+                return 'unknown';
             }
         }
 
@@ -750,8 +947,22 @@
                 elements.processResult.textContent = 'Procesando...';
                 elements.processResult.className = 'info-text';
                 
-                const text = fileDecoder.decode(rawCSVContent);
-                const lines = text.split(/\r?\n/).filter(line => line.trim());
+                // Obtener el texto CSV dependiendo de la pestaña activa
+                let text = csvText;
+                if (activeTab === 'text-tab') {
+                    text = elements.manualInput.value;
+                }
+                
+                // Limpiar el texto
+                text = text.trim();
+                
+                // Reemplazar diferentes tipos de saltos de línea
+                text = text.replace(/\r\n/g, '\n');
+                text = text.replace(/\r/g, '\n');
+                
+                // Dividir por líneas
+                let lines = text.split('\n');
+                lines = lines.filter(line => line.trim().length > 0);
                 
                 if (lines.length === 0) {
                     showError('El archivo está vacío.');
@@ -760,11 +971,12 @@
                 
                 // Detectar si hay encabezado
                 const firstLine = lines[0];
-                const hasHeader = firstLine.toLowerCase().includes('pregunta') || 
-                                 firstLine.toLowerCase().includes('enunciado') ||
-                                 firstLine.toLowerCase().includes('id');
-                
+                const hasHeader = detectHeader(firstLine);
                 const startIndex = hasHeader ? 1 : 0;
+                
+                // Convertir el delimitador
+                const rawDelimiter = selectedDelimiter === '\\t' ? '\t' : selectedDelimiter;
+                
                 questionsDB = [];
                 
                 // Procesar cada línea
@@ -773,16 +985,33 @@
                         const line = lines[i].trim();
                         if (!line) continue;
                         
-                        const parts = parseCSVLine(line, selectedDelimiter);
+                        const parts = parseCSVLine(line, rawDelimiter);
                         
-                        if (parts.length >= 6) { // Mínimo: pregunta + 4 opciones + respuesta correcta
-                            let question;
-                            
-                            // Determinar el formato basado en el número de columnas
+                        // Determinar formato basado en las partes
+                        let question = null;
+                        const format = detectFormat(parts);
+                        
+                        if (format === 'with_id' && parts.length >= 8) {
+                            // Formato: ID, Pregunta, A, B, C, D, Respuesta, Razonamiento
+                            question = {
+                                id: parseInt(parts[0]) || i,
+                                question: parts[1].trim(),
+                                options: [
+                                    parts[2].trim(),
+                                    parts[3].trim(),
+                                    parts[4].trim(),
+                                    parts[5].trim()
+                                ],
+                                correctAnswer: parseCorrectAnswer(parts[6]),
+                                reasoning: parts[7] ? parts[7].trim() : 'Sin explicación disponible',
+                                category: detectCategory(parts[1]),
+                                legalReference: parts[7] ? extractLegalReference(parts[7]) : ''
+                            };
+                        } else if (format === 'unknown' || format === 'without_id') {
                             if (parts.length >= 7) {
-                                // Formato: ID/Pregunta, A, B, C, D, Respuesta, Explicación
+                                // Formato: Pregunta, A, B, C, D, Respuesta, Razonamiento
                                 question = {
-                                    id: parseInt(parts[0]) || i,
+                                    id: i,
                                     question: parts[0].trim(),
                                     options: [
                                         parts[1].trim(),
@@ -791,11 +1020,11 @@
                                         parts[4].trim()
                                     ],
                                     correctAnswer: parseCorrectAnswer(parts[5]),
-                                    reasoning: parts.length >= 7 ? parts[6].trim() : 'Sin explicación disponible',
+                                    reasoning: parts[6] ? parts[6].trim() : 'Sin explicación disponible',
                                     category: detectCategory(parts[0]),
-                                    legalReference: parts.length >= 7 ? extractLegalReference(parts[6]) : ''
+                                    legalReference: parts[6] ? extractLegalReference(parts[6]) : ''
                                 };
-                            } else {
+                            } else if (parts.length >= 6) {
                                 // Formato mínimo: Pregunta, A, B, C, D, Respuesta
                                 question = {
                                     id: i,
@@ -812,14 +1041,16 @@
                                     legalReference: ''
                                 };
                             }
-                            
-                            // Validar pregunta
-                            if (isValidQuestion(question)) {
-                                questionsDB.push(question);
-                            }
+                        }
+                        
+                        // Validar pregunta
+                        if (question && isValidQuestion(question)) {
+                            questionsDB.push(question);
+                        } else {
+                            console.warn(`Pregunta inválida en línea ${i+1}`);
                         }
                     } catch (lineError) {
-                        console.error(`Error en línea ${i}:`, lineError);
+                        console.error(`Error en línea ${i+1}:`, lineError);
                     }
                 }
                 
@@ -831,23 +1062,24 @@
                     elements.processResult.className = 'success-text';
                     elements.quizOptionsSection.classList.remove('hidden');
                 } else {
-                    showError('No se pudieron cargar preguntas válidas. Por favor, revise el formato del archivo.');
+                    showError(`No se pudieron cargar preguntas válidas. Por favor, revise el formato del archivo.
+Si está seguro de que el formato es correcto, pruebe con otro delimitador o codificación.`);
                 }
                 
             } catch (error) {
+                console.error('Error al procesar el archivo:', error);
                 showError(`Error al procesar el archivo: ${error.message}`);
             }
         }
 
-        // Función para parsear una línea CSV
+        // Función mejorada para parsear una línea CSV
         function parseCSVLine(line, delimiter) {
+            if (!line) return [];
+            
             const result = [];
             let current = '';
             let inQuotes = false;
             let i = 0;
-            
-            // Reemplazar el delimitador \t por un tab real
-            if (delimiter === '\\t') delimiter = '\t';
             
             while (i < line.length) {
                 const char = line[i];
